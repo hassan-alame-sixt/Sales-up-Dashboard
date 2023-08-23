@@ -60,8 +60,9 @@ where format_datetime(b.date_date,'YYYY-MM-dd') between format_datetime(a.ndat_b
     and country_mser_handover in ('DE','AT','CH','FR','MC','GB','IT','ES','BE','NL','LU','US','CA') 
 --    and rntl_driver_origin in ('DE','AT','CH','FR','MC','GB','IT','ES','BE','NL','LU','US','CA') 
     and year(b.date_date) in (2023,2022,2019)
-    and a.rntl_mvnr = 9497670359
+--    and a.rntl_mvnr = 9497670359
 order by date_date)
+
 
 select
   a.rntl_mvnr
@@ -88,7 +89,7 @@ select
 , a.ndat_corporate_revenue_loc
 , a.rntl_exchange_rate
 , a.ndat_corporate_revenue_euro
-, a.total_ndat_corporate_revenue_euro
+, case when a.row_count = 1 then a.total_ndat_corporate_revenue_euro else null end as total_ndat_corporate_revenue_euro
 , case when a.row_count = 1 then ch.total_charges else null end as total_charges
 , case when a.row_count = 1 then ch.Time_and_Mileage else null end as Time_and_Mileage
 , case when a.row_count = 1 then ch.Surcharges else null end as Surcharges
