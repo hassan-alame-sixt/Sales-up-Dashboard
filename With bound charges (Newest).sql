@@ -1,4 +1,4 @@
-create table if not exists "sales_mart"."self_service_main_table"
+create table if not exists "sales_mart"."pos_analysis_bound_revenue"
 with (format='Parquet',
 
 external_location='s3://sds-prod-store-marts/sales_mart/self_service_main_table',
