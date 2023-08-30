@@ -1,10 +1,3 @@
-create table if not exists "sales_mart"."pos_analysis_bound_revenue"
-with (format='Parquet',
-
-external_location='s3://sds-prod-store-marts/sales_mart/pos_analysis_bound_revenue',
-
-parquet_compression = 'SNAPPY') as
-
 with inc_charges as (
     select
     ch.rntl_mvnr,
@@ -179,9 +172,9 @@ select
 , i.vhgr_category_level2_booked
 , i.country_region
 , count(distinct rntl_mvnr) as mvnrs
-, sum(a.ndat_rntl_rentals) as rntl_rentals
-, sum(a.ndat_rntl_rental_days) as ndat_rntl_rental_days
-, sum(a.rsrv_advance) as rsrv_advance
+, sum(i.ndat_rntl_rentals) as rntl_rentals
+, sum(i.ndat_rntl_rental_days) as ndat_rntl_rental_days
+, sum(i.rsrv_advance) as rsrv_advance
 , sum(i.total_ndat_corporate_revenue_euro) as total_ndat_corporate_revenue_euro
 , sum(i.total_charges) as total_charges
 , sum(i.Time_and_Mileage) as Time_and_Mileage
