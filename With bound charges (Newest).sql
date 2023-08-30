@@ -91,8 +91,12 @@ select
         end as country_region    
     , a.ndat_corporate_revenue_loc
     , a.rntl_exchange_rate
+    , a.rsrv_advance
+    , a.ndat_rntl_rentals
+    , a.ndat_rntl_rental_days
     , 1.0*a.ndat_corporate_revenue_loc/a.rntl_exchange_rate as ndat_corporate_revenue_euro
     , sum(1.0*a.ndat_corporate_revenue_loc/a.rntl_exchange_rate) over (partition by  a.rntl_mvnr, a.rntl_mser, a.rntl_konr) as total_ndat_corporate_revenue_euro
+
     from "yield_shop"."ca_yield_ra_fct_bound_yield" a
     left join "common_shop"."br_dim_branches" br on br.brnc_code = a.brnc_code_mser_handover
     , "common_shop"."ge_dim_dates" b
@@ -106,7 +110,7 @@ select
     order by date_date
     )
 
-
+, intermediate_pull as (
 select
   a.rntl_mvnr
 , a.rntl_mser
@@ -132,15 +136,18 @@ select
 , a.ndat_corporate_revenue_loc
 , a.rntl_exchange_rate
 , a.ndat_corporate_revenue_euro
-, case when a.row_count = 1 then a.total_ndat_corporate_revenue_euro else 0 end as total_ndat_corporate_revenue_euro
-, case when a.row_count = 1 then ch.total_charges else 0 end as total_charges
-, case when a.row_count = 1 then ch.Time_and_Mileage else 0 end as Time_and_Mileage
-, case when a.row_count = 1 then inc.Inc_tot else 0 end as Inc_tot
-, case when a.row_count = 1 then ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot else 0 end as other_charges
-, coalesce(1.0*ch.total_charges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_total_charges
-, coalesce(1.0*ch.Time_and_Mileage * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_Time_and_Mileage
-, coalesce(1.0*inc.Inc_tot * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_Inc_total
-, coalesce(1.0*(ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot) * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_other_chages
+, a.ndat_rntl_rentals
+, a.ndat_rntl_rental_days
+, case when a.row_count = 1 then a.rsrv_advance else null end as rsrv_advance
+, case when a.row_count = 1 then a.total_ndat_corporate_revenue_euro else null end as total_ndat_corporate_revenue_euro
+, case when a.row_count = 1 then ch.total_charges else null end as total_charges
+, case when a.row_count = 1 then ch.Time_and_Mileage else null end as Time_and_Mileage
+, case when a.row_count = 1 then inc.Inc_tot else null end as Inc_tot
+, case when a.row_count = 1 then ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot else null end as other_charges
+, 1.0*ch.total_charges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_total_charges
+, 1.0*ch.Time_and_Mileage * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Time_and_Mileage
+, 1.0*inc.Inc_tot * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Inc_total
+, 1.0*(ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot) * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_other_chages
 --, case when a.row_count = 1 then ch.Surcharges else null end as Surcharges
 --, case when a.row_count = 1 then ch.Extras else null end as Extras
 --, 1.0*ch.Surcharges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Surcharges
@@ -152,3 +159,40 @@ left join charges ch on ch.chra_mvnr = a.rntl_mvnr
 left join inc_charges inc on inc.rntl_mvnr = a.rntl_mvnr
     and inc.rntl_mser = a.rntl_mser
     and inc.rntl_konr = a.rntl_konr
+)
+
+
+select 
+  i.brnc_country_code_iso_handover
+, i.date_date
+, i.rsrv_source_chl1
+, i.rntl_scd_lv0
+, i.rntl_scd_drillthrough
+, i.brnc_main_type
+, i.brnc_pool_code
+, i.brnc_pool_name
+, i.brnc_region_code
+, i.brnc_region
+, i.brnc_code
+, i.brnc_name
+, i.prst_address_country_iso_code
+, i.vhgr_category_level2_booked
+, i.country_region
+, count(distinct rntl_mvnr) as mvnrs
+, sum(a.ndat_rntl_rentals) as rntl_rentals
+, sum(a.ndat_rntl_rental_days) as ndat_rntl_rental_days
+, sum(a.rsrv_advance) as rsrv_advance
+, sum(i.total_ndat_corporate_revenue_euro) as total_ndat_corporate_revenue_euro
+, sum(i.total_charges) as total_charges
+, sum(i.Time_and_Mileage) as Time_and_Mileage
+, sum(i.Inc_tot) as Inc_tot
+, sum(i.other_charges) as other_charges
+, sum(i.bound_total_charges) as bound_total_charges
+, sum(i.bound_Time_and_Mileage) as bound_Time_and_Mileage
+, sum(i.bound_Inc_total) as bound_Inc_total
+, sum(i.bound_other_chages) as bound_other_chages
+, avg(a.rsrv_advance) as 
+, sum(a.ndat_rntl_rentals) as 
+, sum(a.ndat_rntl_rental_days) as 
+from intermediate_pull i
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
