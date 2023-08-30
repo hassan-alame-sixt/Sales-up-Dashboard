@@ -191,8 +191,5 @@ select
 , sum(i.bound_Time_and_Mileage) as bound_Time_and_Mileage
 , sum(i.bound_Inc_total) as bound_Inc_total
 , sum(i.bound_other_chages) as bound_other_chages
-, avg(a.rsrv_advance) as 
-, sum(a.ndat_rntl_rentals) as 
-, sum(a.ndat_rntl_rental_days) as 
 from intermediate_pull i
 group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
