@@ -132,15 +132,15 @@ select
 , a.ndat_corporate_revenue_loc
 , a.rntl_exchange_rate
 , a.ndat_corporate_revenue_euro
-, case when a.row_count = 1 then a.total_ndat_corporate_revenue_euro else null end as total_ndat_corporate_revenue_euro
-, case when a.row_count = 1 then ch.total_charges else null end as total_charges
-, case when a.row_count = 1 then ch.Time_and_Mileage else null end as Time_and_Mileage
-, case when a.row_count = 1 then inc.Inc_tot else null end as Inc_tot
-, case when a.row_count = 1 then ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot else null end as other_charges
-, 1.0*ch.total_charges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_total_charges
-, 1.0*ch.Time_and_Mileage * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Time_and_Mileage
-, 1.0*inc.Inc_tot * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Inc_total
-, 1.0*(ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot) * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro  as bound_other_chages
+, case when a.row_count = 1 then a.total_ndat_corporate_revenue_euro else 0 end as total_ndat_corporate_revenue_euro
+, case when a.row_count = 1 then ch.total_charges else 0 end as total_charges
+, case when a.row_count = 1 then ch.Time_and_Mileage else 0 end as Time_and_Mileage
+, case when a.row_count = 1 then inc.Inc_tot else 0 end as Inc_tot
+, case when a.row_count = 1 then ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot else 0 end as other_charges
+, coalesce(1.0*ch.total_charges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_total_charges
+, coalesce(1.0*ch.Time_and_Mileage * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_Time_and_Mileage
+, coalesce(1.0*inc.Inc_tot * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_Inc_total
+, coalesce(1.0*(ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot) * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro,0) as bound_other_chages
 --, case when a.row_count = 1 then ch.Surcharges else null end as Surcharges
 --, case when a.row_count = 1 then ch.Extras else null end as Extras
 --, 1.0*ch.Surcharges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Surcharges
