@@ -1,3 +1,10 @@
+create table if not exists "sales_mart"."self_service_main_table"
+with (format='Parquet',
+
+external_location='s3://sds-prod-store-marts/sales_mart/self_service_main_table',
+
+parquet_compression = 'SNAPPY') as
+
 with inc_charges as (
     select
     ch.rntl_mvnr,
