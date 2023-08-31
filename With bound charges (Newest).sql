@@ -1,3 +1,10 @@
+create table if not exists "sales_mart"."pos_analysis_bound_revenue"
+with (format='Parquet',
+
+external_location='s3://sds-prod-store-marts/sales_mart/pos_analysis_bound_revenue',
+
+parquet_compression = 'SNAPPY') as
+
 with inc_charges as (
     select
     ch.rntl_mvnr,
@@ -137,14 +144,14 @@ select
 , case when a.row_count = 1 then ch.Time_and_Mileage else null end as Time_and_Mileage
 , case when a.row_count = 1 then inc.Inc_tot else null end as Inc_tot
 , case when a.row_count = 1 then ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot else null end as other_charges
-, 1.0*ch.total_charges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_total_charges
-, 1.0*ch.Time_and_Mileage * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Time_and_Mileage
-, 1.0*inc.Inc_tot * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Inc_total
-, 1.0*(ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot) * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_other_chages
+, 1.0*ch.total_charges * ndat_corporate_revenue_euro/nullif(total_ndat_corporate_revenue_euro, 0) as bound_total_charges
+, 1.0*ch.Time_and_Mileage * ndat_corporate_revenue_euro/nullif(total_ndat_corporate_revenue_euro, 0) as bound_Time_and_Mileage
+, 1.0*inc.Inc_tot * ndat_corporate_revenue_euro/nullif(total_ndat_corporate_revenue_euro, 0) as bound_Inc_total
+, 1.0*(ch.total_charges - ch.Time_and_Mileage - inc.Inc_tot) * ndat_corporate_revenue_euro/nullif(total_ndat_corporate_revenue_euro, 0) as bound_other_chages
 --, case when a.row_count = 1 then ch.Surcharges else null end as Surcharges
 --, case when a.row_count = 1 then ch.Extras else null end as Extras
---, 1.0*ch.Surcharges * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound_Surcharges
---, 1.0*ch.Extras * ndat_corporate_revenue_euro/total_ndat_corporate_revenue_euro as bound__Extras
+--, 1.0*ch.Surcharges * ndat_corporate_revenue_euro/nullif(total_ndat_corporate_revenue_euro,0) as bound_Surcharges
+--, 1.0*ch.Extras * ndat_corporate_revenue_euro/nullif(total_ndat_corporate_revenue_euro,0) as bound__Extras
 from initial_pull a
 left join charges ch on ch.chra_mvnr = a.rntl_mvnr
     and ch.chra_mser = a.rntl_mser
@@ -171,18 +178,18 @@ select
 , i.prst_address_country_iso_code
 , i.vhgr_category_level2_booked
 , i.country_region
-, count(distinct rntl_mvnr) as mvnrs
-, sum(i.ndat_rntl_rentals) as rntl_rentals
-, sum(i.ndat_rntl_rental_days) as ndat_rntl_rental_days
-, sum(i.rsrv_advance) as rsrv_advance
-, sum(i.total_ndat_corporate_revenue_euro) as total_ndat_corporate_revenue_euro
-, sum(i.total_charges) as total_charges
-, sum(i.Time_and_Mileage) as Time_and_Mileage
-, sum(i.Inc_tot) as Inc_tot
-, sum(i.other_charges) as other_charges
-, sum(i.bound_total_charges) as bound_total_charges
-, sum(i.bound_Time_and_Mileage) as bound_Time_and_Mileage
-, sum(i.bound_Inc_total) as bound_Inc_total
-, sum(i.bound_other_chages) as bound_other_chages
+, coalesce(count(distinct rntl_mvnr), 0) as mvnrs
+, coalesce(sum(i.ndat_rntl_rentals), 0) as rntl_rentals
+, coalesce(sum(i.ndat_rntl_rental_days), 0) as ndat_rntl_rental_days
+, coalesce(sum(i.rsrv_advance), 0) as rsrv_advance
+, coalesce(sum(i.total_ndat_corporate_revenue_euro), 0) as total_ndat_corporate_revenue_euro
+, coalesce(sum(i.total_charges), 0) as total_charges
+, coalesce(sum(i.Time_and_Mileage), 0) as Time_and_Mileage
+, coalesce(sum(i.Inc_tot), 0) as Inc_tot
+, coalesce(sum(i.other_charges), 0) as other_charges
+, coalesce(sum(i.bound_total_charges), 0) as bound_total_charges
+, coalesce(sum(i.bound_Time_and_Mileage), 0) as bound_Time_and_Mileage
+, coalesce(sum(i.bound_Inc_total), 0) as bound_Inc_total
+, coalesce(sum(i.bound_other_chages), 0) as bound_other_chages
 from intermediate_pull i
 group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
