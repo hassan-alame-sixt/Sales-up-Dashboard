@@ -3,6 +3,7 @@ create table if not exists "sales_mart"."self_service_main_table"
 with (format='Parquet',
 external_location='s3://sds-prod-store-marts/sales_mart/self_service_main_table',
 parquet_compression = 'SNAPPY') as
+--Table Granularity is rs.rntl_mvnr, rs.rntl_mser, rs.rntl_konr, ch.chra_pos, ch.chra_inty + re.rsrv_resn
 /*END: Specifying table destination*/
 
 
