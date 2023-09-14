@@ -183,6 +183,7 @@ select
 , rs.rntl_type
 , rs.rntl_payment_type
 
+, case when rs.rntl_mser = 0 then 1 else 0 end as mvnr_count
 , case when rs.rntl_mser = 0 and rs.brnc_code_handover = rs.brnc_code_return then 0 
        when rs.rntl_mser = 0 and rs.brnc_code_handover != rs.brnc_code_return then chra_anz1 
        else null end as rntl_one_way_flag
