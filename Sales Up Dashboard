@@ -1,15 +1,12 @@
 /*START: Specifying table destination*/
 create table if not exists "sales_mart"."self_service_main_table"
 with (format='Parquet',
-
 external_location='s3://sds-prod-store-marts/sales_mart/self_service_main_table',
-
 parquet_compression = 'SNAPPY') as
 /*END: Specifying table destination*/
 
-With cleansed_DFR as
-(
-Select pdp.prtn_kdnr
+With cleansed_DFR as (
+select pdp.prtn_kdnr
 From "customer_shop"."pa_dim_partners" pdp
 Left Join "customer_shop"."pa_dim_partners" pdo On (pdp.prtn_parent_num = pdo.prtn_kdnr)
 Where pdo.prtn_registration_range_code <> 'DFR'
@@ -17,16 +14,66 @@ and pdp.prtn_registration_range_code  Not in ('DTT','DTO','DFI','DFR')
 and pdp.prtn_kdnr Not in (Select agnc_age 
                       From "customer_shop"."pa_dim_agencies"))
 
-, cleansed_DFI as
-(
-Select pdp.agnc_age
+
+, cleansed_DFI as (
+select pdp.agnc_age
 From "customer_shop"."pa_dim_agencies" pdp
 Left Join "customer_shop"."pa_dim_partners" pdo On (pdp.agnc_parent_num = pdo.prtn_kdnr)
 Where pdo.prtn_registration_range_code <> 'DFI')
 
 
+, inc_charges as (
+select
+ch.rntl_mvnr,
+ch.rntl_mser,
+ch.rntl_konr,
+sum(case when cinc_origin_code in ('M','R') then cinc_total_amount else 0 end) as Inc_tot
+-- count(distinct case when cinc_origin_code in ('M','R') and cinc_total_amount > 0 then chrg_chco end) as Inc_tot_CC,
+-- SUM(CASE WHEN cinc_origin_code = 'M' and Oprt_Bed_Handover <> 9000038505 THEN cinc_total_amount END) AS cinc_total_amount_M,
+-- count (distinct case when  cinc_origin_code = 'M' and Oprt_Bed_Handover <> 9000038505 and cinc_total_amount > 0 THEN chrg_chco END)  AS cinc_total_cc_M,
+-- SUM(CASE WHEN (cinc_origin_code = 'R' AND cinc_chl2 in ('iSixt/Android','iSixt/iPhone','iSixt/iPad','Website Public','Website Agent','Website Corporate') and (cinc_chl3 <> 'DIGITAL_CHECKOUT' or cinc_chl3 is null)) THEN cinc_total_amount END) AS cinc_total_amount_R_digital,
+-- count(distinct case when (cinc_origin_code = 'R' AND cinc_chl2 in ('iSixt/Android','iSixt/iPhone','iSixt/iPad','Website Public','Website Agent','Website Corporate') and (cinc_chl3 <> 'DIGITAL_CHECKOUT' or cinc_chl3 is null)) and cinc_total_amount > 0 THEN chrg_chco END)  AS cinc_total_cc_R_Digital,
+-- SUM(CASE WHEN cinc_chl3 = 'DIGITAL_CHECKOUT' or (cinc_origin_code ='M' and Oprt_Bed_Handover = 9000038505) THEN cinc_total_amount END) AS cinc_total_amount_R_Xpress,
+-- count (distinct CASE WHEN cinc_chl3 = 'DIGITAL_CHECKOUT' or (cinc_origin_code ='M' and Oprt_Bed_Handover = 9000038505) and cinc_total_amount > 0 THEN chrg_chco END)  AS cinc_total_cc_R_Xpress,
+-- SUM(CASE WHEN cinc_origin_code = 'R' and (cinc_chl2 not in ('iSixt/Android','iSixt/iPhone','iSixt/iPad','Website Public','Website Agent','Website Corporate') or cinc_chl2 is null) and (cinc_chl3 <> 'DIGITAL_CHECKOUT' or cinc_chl3 is null) THEN cinc_total_amount END) AS cinc_total_amount_R_other,
+-- count (distinct case when cinc_origin_code = 'R' and (cinc_chl2 not in ('iSixt/Android','iSixt/iPhone','iSixt/iPad','Website Public','Website Agent','Website Corporate') or cinc_chl2 is null) and (cinc_chl3 <> 'DIGITAL_CHECKOUT' or cinc_chl3 is null) and cinc_total_amount > 0 THEN chrg_chco END) AS cinc_total_cc_R_other
+from sds_prod_rent_gg_dwh_current.ch_fct_incremental_charges ch
+join (select rntl_mvnr, rntl_mser, max(rntl_konr) as rntl_konr
+       from sds_prod_rent_gg_dwh_current.ch_fct_incremental_charges
+       group by 1,2) cc on ch.rntl_mvnr = cc.rntl_mvnr and ch.rntl_mser = cc.rntl_mser and ch.rntl_konr = cc.rntl_konr
+join (select fir, chco 
+       from sales_migration.ravparm 
+       where vdat > date('2023-07-01') and chco not in ('S','X','T','K') group by 1,2) ic on ic.fir = ch.mndt_code and ic.chco = ch.chrg_chco
+where rate_prl in (select rate_prl from sds_prod_rent_gg_dwh_current.rt_dim_rates where rate_incr_rev_relevant_flg = 1)
+-- and ch.rntl_mvnr =9497670359
+-- and ch.sys_deleted_flg = 0 and ch.sys_actual_flg = 1 
+group by 1,2,3)
+
+
+with revenue_by_country as (
+select 
+  pa.prtn_parent_calc_num
+, br.brnc_country_code_iso
+, sum(rs.rntl_revenue) as rntl_revenue 
+from "rent_shop"."ra_fct_rental_series" rs
+left join "customer_shop"."pa_dim_partners" pa on pa.prtn_kdnr = rs.cstm_kdnr
+left join "common_shop"."br_dim_branches" br on br.brnc_code = rs.brnc_code_handover
+where rs.rntl_accounting_date >= date_add('year', -1, current_date)
+group by 1,2)
+
+
+, ranked_revenue_by_country as (
+select 
+  prtn_parent_calc_num
+, brnc_country_code_iso as domestic_country
+, rntl_revenue 
+, row_number() over (partition by prtn_parent_calc_num order by rntl_revenue desc) as country_revenue_rank 
+from revenue_by_country)
+
+
 select
   re.rsrv_resn
+, re.rsrv_new_customer -- New vs. Existing ???
 , re.rsrv_status
 , re.rsrv_status_extended
 , re.rsrv_source_chl1
@@ -38,6 +85,8 @@ select
 --, re.mndt_code
 --, re.mndt_code_pos
 , re.rsrv_posl_country_code
+, case when re.rsrv_yield_source_level2 in ('Internet Public','Internet Else','Internet Corporate') then True else False end as internet_reservation
+, case when re.rsrv_yield_source_level2 = 'Mobile' then True else False end as app_reservation
 
 , rs.rntl_mvnr  
 , rs.rntl_mser
@@ -53,6 +102,7 @@ select
 , br.brnc_continent
 , br.brnc_country_code_iso
 , br.brnc_country
+, case when br.brnc_country = dc.domestic_country then True else False end as is_domestic_country
 
 , case when br.brnc_country_code_iso in ('DE','AT','CH','FR','MC','GB','IT','ES','BE','NL','LU','US','CA') then 'Corporate' 
        else 'Franchise' 
@@ -69,6 +119,25 @@ select
    when br.brnc_country_code_iso = 'CA' then 'Canada'
    else 'Franchise' 
    end as brnc_country_region
+, case when br.brnc_country_code_iso = 'DE' then 'Germany'
+    when br.brnc_country_code_iso = 'AT' then 'Austria'
+    when br.brnc_country_code_iso = 'CH' then 'Switzerland'
+    when br.brnc_country_code_iso in ('FR','MC') then 'France'
+    when br.brnc_country_code_iso = 'GB' then 'Great Britain'
+    when br.brnc_country_code_iso = 'IT' then 'Italy'
+    when br.brnc_country_code_iso = 'ES' then 'Spain'
+    when br.brnc_country_code_iso in ('BE','NL','LU') then 'BeNeLux'
+    when br.brnc_country_code_iso = 'US' then 'United States'
+    when br.brnc_country_code_iso = 'CA' then 'Canada'
+    when br.brnc_country_code_iso in ('AR','BZ','BO','BV','BR','CL','CO'
+                                ,'CR','EC','SV','FK','GF','GT','GY'
+                                ,'HN','MX','NI','PA','PY','PE','GS'
+                                ,'SR','UY','VE') then 'LatAm'
+    when br.brnc_country_code_iso in ('BH','CY','IR','IQ','JO','KW','LB'
+                                ,'OM','QA','SA','SY','AE','YE') then 'MidEast'
+    when br.brnc_country_code_iso in ('DK','FI','NO','SE') then 'Scandanavia'
+    else 'Other Franchise' 
+    end as brnc_country_region_franchise_breakdown    
 , br.brnc_region
 --, br.brnc_state_code
 , br.brnc_state
@@ -80,6 +149,10 @@ select
 , rs.cstm_kdnr
 , pa.prtn_name as cstm_name
 , pa.oprt_bed as kdnr_prt_bed
+, pa.prtn_highest_person_region as kdnr_highest_person_region
+, pa.prtn_highest_working_channel as kdnr_highest_working_channel
+, pa.prtn_person_region as kdnr_prtn_person_region --Team level
+, pa.prtn_working_channel as kdnr_prtn_working_channel --Sales Region
 , concat(op1.oprt_last_name,', ',op1.oprt_first_name) as kdnr_account_owner
 , case when pa.prtn_parent_num = 0 and pa.prtn_subsidiary_num = 0 then 'Highest Account' else 'Linked Account' end as kdnr_highest_linked
 
@@ -88,10 +161,15 @@ select
 
 , pa.prtn_parent_calc_num as dfi
 , pa.prtn_parent_calc_name as dfi_name
+, dc.domestic_country as prtn_parent_domestic_country
 
 , rs.agnc_age_agency1 as agnc_age
 , ag.prtn_name as age_name
 , ag.oprt_bed as age_prt_bed
+, ag.prtn_highest_person_region as age_highest_person_region --Team level
+, ag.prtn_highest_working_channel as age_highest_working_channel --Sales Region
+, ag.prtn_person_region as age_prtn_person_region
+, ag.prtn_working_channel as age_prtn_working_channel
 , concat(op2.oprt_last_name,', ',op2.oprt_first_name) as age_account_owner
 , case when ag.prtn_parent_num = 0 and ag.prtn_subsidiary_num = 0 then 'Highest Account' else 'Linked Account' end as age_highest_linked
 
@@ -104,6 +182,138 @@ select
 , rs.rntl_type_code
 , rs.rntl_type
 , rs.rntl_payment_type
+
+, case when rs.rntl_mser = 0 and rs.brnc_code_handover = rs.brnc_code_return then 0 
+       when rs.rntl_mser = 0 and rs.brnc_code_handover != rs.brnc_code_return then chra_anz1 
+       else null end as rntl_one_way_flag
+, case when rs.rntl_mser = 0 and max(rntl_konr) over (partition by rntl_mvnr) = 0 then 0 
+       when rs.rntl_mser = 0 and max(rntl_konr) over (partition by rntl_mvnr)>= 1 then 1 
+       else null end as rntl_correction_flag  
+, re.rsrv_cancelled_flg
+, re.rsrv_noshow_flg
+
+, rs.cstm_account_manager_num
+, rs.cstm_account_manager_name
+
+, re.rsrv_date
+, rs.rntl_handover_datm
+, rs.rntl_return_datm
+, rs.rntl_accounting_date
+
+
+, rs.vhgr_crs -- Paid Vehicle Group: connected to price list
+, rs.vhcl_group
+, rs.vhcl_checked_out_group
+--, ve.vhcl_group
+, ve.vhcl_type
+, ve.vhcl_category_level1
+, ve.vhcl_category_level2
+, ve.vhcl_category_level3
+, ve.vhcl_category_level4
+, ve.vhcl_owner_status
+, ve.vhat_elty
+    
+    
+, rs.rate_id
+, rs.rate_prl -- Rate Code
+, rt.rate_bundle
+, rt.rate_type
+, rt.rate_designation
+
+, rs.rate_type_level1_gare
+, rs.rate_type_level2_glev --Tariff
+, rs.rate_type_level3_aknm
+, rs.rate_type_level4_aktv --3 and 4 are connected include both
+, concat(rs.rate_type_level4_aktv,' - ', rs.rate_type_level3_aknm) as AKTV
+, rt.rate_crm_type_gare_clv
+
+, rt.rate_gdat
+, rt.rate_vdat
+, rt.rate_next_gdat
+, coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat) as rate_validity_end
+
+
+, 'Rent' as product_level1_source
+-- Product Level 2 (Car or Truck)
+, case  when rt.vhcl_yield_type_code = 'P'              then 'Car'
+        when rt.vhcl_yield_type_code = 'L'              then 'Truck'
+        else rt.vhcl_yield_type_code
+        end as product_level2_car_truck
+-- Product Level 2 (C&B or V&T) - same logic, different wording. Used internally. Kept for compatibility reasons.
+, case  when rt.vhcl_yield_type_code = 'P'              then 'C&B' -- Cars & Busses
+        when rt.vhcl_yield_type_code = 'L'              then 'V&T' -- Vans & Trucks
+        else rt.vhcl_yield_type_code
+        end as product_level2_cnb_vnt
+-- Product Level 3 (Product Name)
+, case  when rs.rate_type_level1_gare = 'Subscription'  then rs.rate_type_level3_aknm
+        when rs.rntl_type_code = 'Long'                 then 'Long-Term'
+        when rs.rntl_type_code = 'Short'                then 'Short-Term'
+        else rs.rntl_type_code
+        end as product_level3_name
+
+--  ch.chra_mvnr
+--, ch.chra_mser
+--, ch.chra_konr
+, ch.chra_pos
+, ch.chra_inty
+, ch.chra_chco
+, cn.chrg_name 
+
+, cs.rsts_excitement_num
+, cs.rsts_recommendation_num
+
+
+, case when ch.chra_mvnr is null then rs.rntl_revenue 
+       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_revenue 
+       else null end as rntl_revenue--To attach only 1 rntl_revenue per mvnr
+, case when ch.chra_mvnr is null then rs.rntl_discount
+       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_discount 
+       else null end as rntl_discount--To attach only 1 rntl_revenue per mvnr
+, case when ch.chra_mvnr is null then rs.rntl_rental_days
+       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_rental_days 
+       else null end as rental_days--To attach only 1 rntl_revenue per mvnr
+, case when ch.chra_mvnr is null then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
+       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
+       else null end as advanced_booking--To attach only 1 rntl_revenue per mvnr
+, case when br.brnc_country = dc.domestic_country
+
+, ch.chra_value
+, case when cn.chrg_level1_care = 'Time & Mileage' then ch.chra_value else null end as Time_and_Mileage
+, case when ch.chra_mvnr is null then rs.rntl_revenue
+       when ((count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)- count(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) != 0) and ch.chra_value is null then 1.0*(rs.rntl_revenue- coalesce(sum(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr),0) +rs.rntl_discount)/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)-count(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr))
+       else ch.chra_value - 1.0*rs.rntl_discount/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) end as improved_revenue
+, case when ch.chra_mvnr is null then inc.Inc_tot
+       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then inc.Inc_tot
+       else null end as Inc_tot--To attach only 1 rntl_revenue per mvnr
+
+
+from "rent_shop"."ra_fct_rental_series" rs
+full join "rent_shop"."rs_fct_reservations" re on re.rntl_mvnr = rs.rntl_mvnr
+left join "customer_shop"."ra_fct_satisfactions" cs on cs.rntl_mvnr = rs.rntl_mvnr
+left join "customer_shop"."pa_dim_partners" pa on pa.prtn_kdnr = rs.cstm_kdnr
+left join "customer_shop"."pa_dim_partners" ag on ag.prtn_kdnr = rs.agnc_age_agency1
+left join ranked_revenue_by_country dc on dc.prtn_parent_calc_num = pa.prtn_parent_calc_num and dc.country_revenue_rank = 1
+left join "hr_shop"."op_dim_operators" op1 on op1.oprt_bed = pa.oprt_bed 
+left join "hr_shop"."op_dim_operators" op2 on op2.oprt_bed = ag.oprt_bed
+left join "common_shop"."br_dim_branches" br on br.brnc_code = rs.brnc_code_handover
+left join "fleet_shop"."ve_dim_vehicles" ve on ve.vhcl_int_num = rs.vhcl_int_num
+left join cleansed_DFR dfr on dfr.prtn_kdnr = rs.cstm_kdnr
+left join cleansed_DFI dfi on dfi.agnc_age = rs.agnc_age_agency1
+left join "rent_shop"."rt_dim_rates" rt
+    on (rs.rate_prl = rt.rate_prl
+    and rs.rntl_handover_date between rt.rate_gdat and coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat)) 
+left join inc_charges inc on inc.rntl_mvnr = a.rntl_mvnr
+    and inc.rntl_mser = a.rntl_mser
+    and inc.rntl_konr = a.rntl_konr
+left join "rent_shop"."ch_fct_ra_charges" ch -- charge usage/revenue
+    on ch.chra_mvnr = rs.rntl_mvnr
+    and ch.chra_mser = rs.rntl_mser
+    and ch.chra_konr = rs.rntl_konr
+    -- sum over chrg_inty ! -> Main + Secondary invoice
+left join "rent_shop"."ch_dim_charges" cn         -- charge code names
+    on cn.chrg_chco = ch.chra_chco
+    
+where year(rs.rntl_accounting_date) >= 2019
 
 /*
 --Rental Card Status
@@ -126,74 +336,6 @@ select
 , re.rntl_changed_vehicles_num
 */
 
-, re.rsrv_cancelled_flg
-, re.rsrv_noshow_flg
-
-, rs.cstm_account_manager_num
-, rs.cstm_account_manager_name
-
-, case  when rt.vhcl_yield_type_code = 'P' then 'Car'
-        when rt.vhcl_yield_type_code = 'L' then 'Truck'
-        else rt.vhcl_yield_type_code
-        end as product_level2_car_truck
-
-  -- Product Level 3 (Product Name)
-, case  when rs.rate_type_level1_gare = 'Subscription' then rs.rate_type_level3_aknm
-        when rs.rntl_type_code = 'Long' then 'Long-Term'
-        when rs.rntl_type_code = 'Short' then 'Short-Term'
-        else rs.rntl_type_code 
-        end as product_level3_long_short
-
-, re.rsrv_date
-, rs.rntl_handover_datm
-, rs.rntl_return_datm
-, rs.rntl_accounting_date
-
-
-
-, rs.vhgr_crs -- Paid Vehicle Group: connected to price list
-, rs.vhcl_group
-, rs.vhcl_checked_out_group
---, ve.vhcl_group
-, ve.vhcl_type
-, ve.vhcl_category_level1
-, ve.vhcl_category_level2
-, ve.vhcl_category_level3
-, ve.vhcl_category_level4
-, ve.vhcl_owner_status
-, ve.vhat_elty
-    
-    
-    
-, rs.rate_id
-, rs.rate_prl -- Rate Code
-, rs.rate_type_level1_gare
-, rs.rate_type_level2_glev --Tariff
-, rs.rate_type_level3_aknm
-, rs.rate_type_level4_aktv --3 and 4 are connected include both
-, concat(rs.rate_type_level4_aktv,' - ', rs.rate_type_level3_aknm) as AKTV
-
---  ch.chra_mvnr
---, ch.chra_mser
---, ch.chra_konr
-, ch.chra_pos
-, ch.chra_inty
-, ch.chra_chco
-, cn.chrg_name 
-
-
-, case when ch.chra_mvnr is null then rs.rntl_revenue 
-       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_revenue 
-       else null end as rntl_revenue--To attach only 1 rntl_revenue per mvnr
-, case when ch.chra_mvnr is null then rs.rntl_discount
-       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_discount 
-       else null end as rntl_discount--To attach only 1 rntl_revenue per mvnr
-, case when ch.chra_mvnr is null then rs.rntl_rental_days
-       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_rental_days 
-       else null end as rental_days--To attach only 1 rntl_revenue per mvnr
-, case when ch.chra_mvnr is null then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
-       when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
-       else null end as advanced_booking--To attach only 1 rntl_revenue per mvnr
 /*
 -- Rental Other Currencies
 , rs.rntl_revenue_rental--Original If controlling asks for local currency they usually mean this 
@@ -201,11 +343,6 @@ select
 , rs.rntl_revenue_local_currency --Pickup country's local currency
 , rs.rntl_local_currency_code
 */
-
-, ch.chra_value
-, case when ch.chra_mvnr is null then rs.rntl_revenue
-       when ((count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)- count(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) != 0) and ch.chra_value is null then 1.0*(rs.rntl_revenue- coalesce(sum(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr),0) +rs.rntl_discount)/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)-count(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr))
-       else ch.chra_value - 1.0*rs.rntl_discount/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) end as improved_revenue
 
 /*
 --Other Currencies
@@ -223,40 +360,21 @@ select
 , ch.chra_value_local
 */ 
 
-from "rent_shop"."ra_fct_rental_series" rs
-full join "rent_shop"."rs_fct_reservations" re on re.rntl_mvnr = rs.rntl_mvnr
-left join "customer_shop"."pa_dim_partners" pa on pa.prtn_kdnr = rs.cstm_kdnr
-left join "customer_shop"."pa_dim_partners" ag on ag.prtn_kdnr = rs.agnc_age_agency1
-left join "hr_shop"."op_dim_operators" op1 on op1.oprt_bed = pa.oprt_bed 
-left join "hr_shop"."op_dim_operators" op2 on op2.oprt_bed = ag.oprt_bed
-left join "common_shop"."br_dim_branches" br on br.brnc_code = rs.brnc_code_handover
-left join "fleet_shop"."ve_dim_vehicles" ve on ve.vhcl_int_num = rs.vhcl_int_num
-left join cleansed_DFR dfr on dfr.prtn_kdnr = rs.cstm_kdnr
-left join cleansed_DFI dfi on dfi.agnc_age = rs.agnc_age_agency1
-left join "rent_shop"."rt_dim_rates" rt
-    on (rs.rate_prl = rt.rate_prl
-    and rs.rntl_handover_date between rt.rate_gdat and coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat)) 
-left join "rent_shop"."ch_fct_ra_charges" ch -- charge usage/revenue
-    on ch.chra_mvnr = rs.rntl_mvnr
-    and ch.chra_mser = rs.rntl_mser
-    and ch.chra_konr = rs.rntl_konr
-    -- sum over chrg_inty ! -> Main + Secondary invoice
-
-left join "rent_shop"."ch_dim_charges" cn         -- charge code names
-    on cn.chrg_chco = ch.chra_chco
-    
-where year(rs.rntl_accounting_date) >= 2019
-
 /*
 --Rate Details
-  ra.rate_prl
-, ra.rate_type
-, ra.rate_business_area_product
-, ra.rate_type_level1_gare
-, ra.rate_type_level2_glev
-, ra.rate_type_level3_aknm
-, ra.rate_type_level4_aktv
-, ra.rate_crm_type_gare_clv
-, ra.rate_designation
-left join "rent_shop"."rt_dim_rates" ra on ra.rate_prl = rs.rate_prl
+  rt.rate_prl
+, rt.rate_gdat
+, rt.rate_vdat
+, rt.rate_next_gdat
+, coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat)) as rate_validity_end
+, rt.rate_bundle
+, rt.rate_type
+, rt.rate_business_area_product
+, rt.rate_type_level1_gare
+, rt.rate_type_level2_glev
+, rt.rate_type_level3_aknm
+, rt.rate_type_level4_aktv
+, rt.rate_crm_type_gare_clv
+, rt.rate_designation
+left join "rent_shop"."rt_dim_rates" rt on rt.rate_prl = rs.rate_prl
 */

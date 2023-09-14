@@ -39,7 +39,7 @@ select
     , ch.chra_mser
     , ch.chra_konr
     , sum(ch.chra_value) as total_charges
-    , sum(case when chrg_level1_care = 'Time & Mileage' then ch.chra_value else null end) as Time_and_Mileage
+    , sum(case when cn.chrg_level1_care = 'Time & Mileage' then ch.chra_value else null end) as Time_and_Mileage
 --    , sum(case when chrg_level1_care = 'Surcharges' then ch.chra_value else null end) as Surcharges
 --    , sum(case when chrg_level2_clev = 'Extras' then ch.chra_value else null end) as Extras
     from "rent_shop"."ch_fct_ra_charges" ch
