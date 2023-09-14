@@ -5,6 +5,7 @@ external_location='s3://sds-prod-store-marts/sales_mart/self_service_main_table'
 parquet_compression = 'SNAPPY') as
 /*END: Specifying table destination*/
 
+
 With cleansed_DFR as (
 select pdp.prtn_kdnr
 From "customer_shop"."pa_dim_partners" pdp
@@ -50,7 +51,7 @@ where rate_prl in (select rate_prl from sds_prod_rent_gg_dwh_current.rt_dim_rate
 group by 1,2,3)
 
 
-with revenue_by_country as (
+, revenue_by_country as (
 select 
   pa.prtn_parent_calc_num
 , br.brnc_country_code_iso
@@ -183,12 +184,12 @@ select
 , rs.rntl_type
 , rs.rntl_payment_type
 
-, case when rs.rntl_mser = 0 then 1 else 0 end as mvnr_count
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or ch.chra_pos = 1) then 1 else 0 end as mvnr_count
 , case when rs.rntl_mser = 0 and rs.brnc_code_handover = rs.brnc_code_return then 0 
-       when rs.rntl_mser = 0 and rs.brnc_code_handover != rs.brnc_code_return then chra_anz1 
+       when rs.rntl_mser = 0 and rs.brnc_code_handover != rs.brnc_code_return then 1 
        else null end as rntl_one_way_flag
-, case when rs.rntl_mser = 0 and max(rntl_konr) over (partition by rntl_mvnr) = 0 then 0 
-       when rs.rntl_mser = 0 and max(rntl_konr) over (partition by rntl_mvnr)>= 1 then 1 
+, case when rs.rntl_mser = 0 and max(rs.rntl_konr) over (partition by rs.rntl_mvnr) = 0 then 0 
+       when rs.rntl_mser = 0 and max(rs.rntl_konr) over (partition by rs.rntl_mvnr)>= 1 then 1 
        else null end as rntl_correction_flag  
 , re.rsrv_cancelled_flg
 , re.rsrv_noshow_flg
@@ -276,7 +277,7 @@ select
 , case when ch.chra_mvnr is null then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
        else null end as advanced_booking--To attach only 1 rntl_revenue per mvnr
-, case when br.brnc_country = dc.domestic_country
+
 
 , ch.chra_value
 , case when cn.chrg_level1_care = 'Time & Mileage' then ch.chra_value else null end as Time_and_Mileage
@@ -301,11 +302,10 @@ left join "fleet_shop"."ve_dim_vehicles" ve on ve.vhcl_int_num = rs.vhcl_int_num
 left join cleansed_DFR dfr on dfr.prtn_kdnr = rs.cstm_kdnr
 left join cleansed_DFI dfi on dfi.agnc_age = rs.agnc_age_agency1
 left join "rent_shop"."rt_dim_rates" rt
-    on (rs.rate_prl = rt.rate_prl
-    and rs.rntl_handover_date between rt.rate_gdat and coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat)) 
-left join inc_charges inc on inc.rntl_mvnr = a.rntl_mvnr
-    and inc.rntl_mser = a.rntl_mser
-    and inc.rntl_konr = a.rntl_konr
+    on (rs.rate_prl = rt.rate_prl and rs.rntl_handover_date between rt.rate_gdat and coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat)) 
+left join inc_charges inc on inc.rntl_mvnr = rs.rntl_mvnr
+    and inc.rntl_mser = rs.rntl_mser
+    and inc.rntl_konr = rs.rntl_konr
 left join "rent_shop"."ch_fct_ra_charges" ch -- charge usage/revenue
     on ch.chra_mvnr = rs.rntl_mvnr
     and ch.chra_mser = rs.rntl_mser
