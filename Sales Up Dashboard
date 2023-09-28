@@ -90,6 +90,9 @@ select
 , case when re.rsrv_yield_source_level2 in ('Internet Public','Internet Else','Internet Corporate') then True else False end as internet_reservation
 , case when re.rsrv_yield_source_level2 = 'Mobile' then True else False end as app_reservation
 
+, case when re.rsrv_cancelled_flg = 1 then re.rsrv_resn else null end as rsrv_cancelled_resn
+, case when re.rsrv_noshow_flg = 1 then re.rsrv_resn else null end as rsrv_noshow_resn 
+
 , rs.rntl_mvnr  
 , rs.rntl_mser
 , rs.rntl_konr
@@ -104,6 +107,7 @@ select
 , br.brnc_continent
 , br.brnc_country_code_iso
 , br.brnc_country
+, brnc_active_flg 
 , case when br.brnc_country = dc.domestic_country then True else False end as is_domestic_country
 
 , case when br.brnc_country_code_iso in ('DE','AT','CH','FR','MC','GB','IT','ES','BE','NL','LU','US','CA') then 'Corporate' 
@@ -150,7 +154,8 @@ select
 
 , rs.cstm_kdnr
 , pa.prtn_name as cstm_name
-, pa.oprt_bed as kdnr_prt_bed
+, pa.oprt_bed as kdnr_prt_bed --Account Owner
+, pa.oprt_bed_vkni as kdnr_bed_vkni --Inside Sales
 , pa.prtn_highest_person_region as kdnr_highest_person_region
 , pa.prtn_highest_working_channel as kdnr_highest_working_channel
 , pa.prtn_person_region as kdnr_prtn_person_region --Team level
@@ -185,15 +190,21 @@ select
 , rs.rntl_type
 , rs.rntl_payment_type
 
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or ch.chra_pos = 1) then 1 else 0 end as mvnr_count
-, case when rs.rntl_mser = 0 and rs.brnc_code_handover = rs.brnc_code_return then 0 
-       when rs.rntl_mser = 0 and rs.brnc_code_handover != rs.brnc_code_return then 1 
-       else null end as rntl_one_way_flag
-, case when rs.rntl_mser = 0 and max(rs.rntl_konr) over (partition by rs.rntl_mvnr) = 0 then 0 
-       when rs.rntl_mser = 0 and max(rs.rntl_konr) over (partition by rs.rntl_mvnr)>= 1 then 1 
-       else null end as rntl_correction_flag  
-, re.rsrv_cancelled_flg
-, re.rsrv_noshow_flg
+
+--MVNR Granularity
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then 1 else 0 end as mvnr_count
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
+                                   and rs.brnc_code_handover = rs.brnc_code_return then rs.rntl_mvnr 
+       else null end as rntl_one_way_mvnr
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
+                                   and max(rs.rntl_konr) over (partition by rs.rntl_mvnr) = 0 then rs.rntl_mvnr 
+       else null end as rntl_correction_mvnr 
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_excitement_num 
+       else null end as rsts_excitement_num 
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_recommendation_num 
+       else null end as rsts_recommendation_num 
+
+
 
 , rs.cstm_account_manager_num
 , rs.cstm_account_manager_name
@@ -262,10 +273,8 @@ select
 , ch.chra_chco
 , cn.chrg_name 
 
-, cs.rsts_excitement_num
-, cs.rsts_recommendation_num
 
-
+--MSER Granularity
 , case when ch.chra_mvnr is null then rs.rntl_revenue 
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_revenue 
        else null end as rntl_revenue--To attach only 1 rntl_revenue per mvnr

@@ -403,37 +403,43 @@ view: self_service_main_table {
     view_label: "Measures"
     type: sum
     sql: ${rntl_revenue} ;;
-    value_format: "€0.00"}
+    value_format: "€0.00"
+  }
 
   measure: average_rntl_revenue {
     view_label: "Measures"
     type: average
     sql: ${rntl_revenue} ;;
-    value_format: "€0.00"}
+    value_format: "€0.00"
+  }
 
 
   measure: total_rental_days {
     view_label: "Measures"
     type: sum
-    sql: ${rental_days} ;;}
+    sql: ${rental_days} ;;
+  }
 
 
   measure: average_rental_days {
     view_label: "Measures"
     type: average
-    sql: ${rental_days} ;;}
+    sql: ${rental_days} ;;
+  }
 
 
   measure: total_advanced_booking {
     view_label: "Measures"
     type: sum
-    sql: ${advanced_booking} ;;}
+    sql: ${advanced_booking} ;;
+  }
 
 
   measure: average_advanced_booking {
     view_label: "Measures"
     type: average
-    sql: ${advanced_booking} ;;}
+    sql: ${advanced_booking} ;;
+  }
 
 
   dimension: rntl_type {
