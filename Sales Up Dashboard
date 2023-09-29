@@ -203,7 +203,9 @@ select
        else null end as rsts_excitement_num 
 , case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_recommendation_num 
        else null end as rsts_recommendation_num 
-
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
+                                   and min(ve.vhat_elty) over (partition by rs.rntl_mvnr) = 'E' then rs.rntl_mvnr 
+       else null end as rntl_bev_mvnr
 
 
 , rs.cstm_account_manager_num

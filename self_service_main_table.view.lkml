@@ -1,4 +1,4 @@
-# The name of this view in Looker is "Self Service Main Table 2"
+# The name of this view in Looker is "sales_up_main_table"
 view: sales_up_main_table {
   # The sql_table_name parameter indicates the underlying database table
   # to be used for all fields in this view.
@@ -592,6 +592,12 @@ view: sales_up_main_table {
     type: number
     sql: ${TABLE}.rntl_one_way_mvnr ;;
   }
+  
+  dimension: rntl_bev_mvnr {
+    view_label: "Mietvertrag Columns"
+    type: number
+    sql: ${TABLE}.rntl_bev_mvnr ;;
+  }
 
   dimension: rntl_payment_type {
     view_label: "Mietvertrag Columns"
@@ -919,6 +925,18 @@ view: sales_up_main_table {
     view_label: "Measures"
     type: number
     sql: 1.0*${total_correction_mvnrs}/${total_mvnrs} 
+  }
+
+  measure: total_bev_mvnrs {
+    view_label: "Measures"
+    type: count_distinct
+    sql: ${rntl_bev_mvnr} ;;
+  }
+
+  measure: ratio_one_way_mvnrs {
+    view_label: "Measures"
+    type: number
+    sql: 1.0*${total_bev_mvnrs}/${total_mvnrs} 
   }
 
   measure: total_reservations {
