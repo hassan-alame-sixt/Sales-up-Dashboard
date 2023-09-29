@@ -1,4 +1,5 @@
-# The name of this view in Looker is "sales_up_main_table"
+# The name of this view in Looker is "Self Service Main Table 2"
+
 view: sales_up_main_table {
   # The sql_table_name parameter indicates the underlying database table
   # to be used for all fields in this view.
@@ -8,9 +9,9 @@ view: sales_up_main_table {
   # No primary key is defined for this view. In order to join this view in an Explore,
   # define primary_key: yes on a dimension that has no repeated values.
 
-    # Here's what a typical dimension looks like in LookML.
-    # A dimension is a groupable field that can be used to filter query results.
-    # This dimension will be called "Advanced Booking" in Explore.
+  # Here's what a typical dimension looks like in LookML.
+  # A dimension is a groupable field that can be used to filter query results.
+  # This dimension will be called "Advanced Booking" in Explore.
 
   dimension: advanced_booking {
     view_label: "Measures"
@@ -97,7 +98,7 @@ view: sales_up_main_table {
     type: number
     sql: case when ${TABLE}.app_reservation is True then ${TABLE}.rntl_mvnr else null end;;
   }
-  
+
   dimension: brnc_city {
     view_label: "Branch Columns"
     type: string
@@ -338,7 +339,7 @@ view: sales_up_main_table {
     type: number
     sql: case when ${TABLE}.internet_reservation is True then ${TABLE}.improved_revenue else null end;;
   }
-  
+
   dimension: internet_reservation_mvnr {
     view_label: "Other Columns"
     hidden: yes
@@ -867,30 +868,6 @@ view: sales_up_main_table {
     value_format: "€0.00"
   }
 
-  measure: total_rental_days {
-    view_label: "Measures"
-    type: sum
-    sql: ${rental_days} ;;
-  }
-
-  measure: average_rental_days {
-    view_label: "Measures"
-    type: average
-    sql: ${rental_days} ;;
-  }
-
-  measure: total_advanced_booking {
-    view_label: "Measures"
-    type: sum
-    sql: ${advanced_booking} ;;
-  }
-
-  measure: average_advanced_booking {
-    view_label: "Measures"
-    type: average
-    sql: ${advanced_booking} ;;
-  }
-
   measure: total_mvnr_count {
     view_label: "Measures"
     type: sum
@@ -912,37 +889,38 @@ view: sales_up_main_table {
   measure: ratio_one_way_mvnrs {
     view_label: "Measures"
     type: number
-    sql: 1.0*${total_one_way_mvnrs}/${total_mvnrs} 
-  }
+    sql: 1.0*${total_one_way_mvnrs}/${total_mvnrs} ;;
+        }
 
   measure: total_correction_mvnrs {
-    view_label: "Measures"
-    type: count_distinct
-    sql: ${rntl_correction_mvnr} ;;
+      view_label: "Measures"
+      type: count_distinct
+      sql: ${rntl_correction_mvnr} ;;
   }
 
   measure: ratio_correction_mvnrs {
     view_label: "Measures"
     type: number
-    sql: 1.0*${total_correction_mvnrs}/${total_mvnrs} 
-  }
+    sql: 1.0*${total_correction_mvnrs}/${total_mvnrs} ;;
+        }
 
   measure: total_bev_mvnrs {
     view_label: "Measures"
     type: count_distinct
     sql: ${rntl_bev_mvnr} ;;
   }
-
-  measure: ratio_one_way_mvnrs {
+  
+  measure: ratio_bev_mvnrs {
     view_label: "Measures"
     type: number
-    sql: 1.0*${total_bev_mvnrs}/${total_mvnrs} 
+    sql: 1.0*${total_bev_mvnrs}/${total_mvnrs}
   }
+  
 
   measure: total_reservations {
-    view_label: "Measures"
-    type: count_distinct
-    sql: ${rsrv_resn} ;;
+      view_label: "Measures"
+      type: count_distinct
+      sql: ${rsrv_resn} ;;
   }
 
   measure: total_cancelled_resn {
@@ -954,8 +932,8 @@ view: sales_up_main_table {
   measure: ratio_cancelled_resn {
     view_label: "Measures"
     type: number
-    sql: 1.0*${total_cancelled_resn}/${total_reservations} 
-  }
+    sql: 1.0*${total_cancelled_resn}/${total_reservations} ;;
+        }
 
   measure: total_noshow_resn {
     view_label: "Measures"
@@ -966,15 +944,15 @@ view: sales_up_main_table {
   measure: ratio_noshow_resn {
     view_label: "Measures"
     type: number
-    sql: 1.0*${total_noshow_resn}/${total_reservations} 
+    sql: 1.0*${total_noshow_resn}/${total_reservations} ;;
   }
 
   measure: total_chco {
     view_label: "Measures"
     type: count
     drill_fields: [detail*]
-  }
-
+    }
+  
   measure: RPD {
     view_label: "Measures"
     type: number
@@ -1009,7 +987,7 @@ view: sales_up_main_table {
     sql: ${inc_tot} ;;
     value_format: "€0.00"
   }
-  
+
   measure: total_other_charges{
     view_label: "Measures"
     type: sum
@@ -1017,20 +995,20 @@ view: sales_up_main_table {
     value_format: "€0.00"
   }
 
-  measure: average_inc_tot {
+  measure: avg_inc_tot {
     view_label: "Measures"
     type: average
     sql: ${average_improved_revenue} - {average_time_and_mileage} - {average_inc_tot} ;;
     value_format: "€0.00"
   }
 
-  measure: total_other_charges{
+  measure: avg_other_charges{
     view_label: "Measures"
-    type: sum
+    type: average
     sql: ${total_improved_revenue} - {total_time_and_mileage} - {total_inc_tot} ;;
     value_format: "€0.00"
   }
-  
+
   measure: total_domestic_revenue {
     view_label: "Measures"
     type: sum
@@ -1041,8 +1019,8 @@ view: sales_up_main_table {
   measure: ratio_domestic_revenue {
     view_label: "Measures"
     type: number
-    sql: 1.0*${domestic_revenue}/${total_improved_revenue} 
-  }
+    sql: 1.0*${domestic_revenue}/${total_improved_revenue} ;;
+        }
 
   measure: total_non_domestic_revenue {
     view_label: "Measures"
@@ -1050,12 +1028,12 @@ view: sales_up_main_table {
     sql: ${non_domestic_revenue} ;;
     value_format: "€0.00"
   }
-  
+
   measure: ratio_non_domestic_revenue {
     view_label: "Measures"
     type: number
-    sql: 1.0*${non_domestic_revenue}/${total_improved_revenue} 
-  }
+    sql: 1.0*${non_domestic_revenue}/${total_improved_revenue} ;;
+        }
 
   measure: total_app_reservation_revenue {
     view_label: "Measures"
@@ -1063,32 +1041,32 @@ view: sales_up_main_table {
     sql: ${app_reservation_revenue} ;;
     value_format: "€0.00"
   }
-      
+
   measure: count_app_reservation_mvnr {
     view_label: "Measures"
     type: count_distinct
     sql: ${app_reservation_mvnr} ;;
   }
-     
+
   measure: ratio_app_reservation_mvnr {
     view_label: "Measures"
     type: number
     sql: 1.0*${count_app_reservation_mvnr}/${total_mvnrs} ;;
   }
-    
+
   measure: total_internet_reservation_revenue {
     view_label: "Measures"
     type: sum
     sql: ${internet_reservation_revenue} ;;
     value_format: "€0.00"
   }
-  
+
   measure: count_internet_reservation_mvnr {
     view_label: "Measures"
     type: count_distinct
     sql: ${internet_reservation_mvnr} ;;
   }
-      
+
   measure: ratio_internet_reservation_mvnr {
     view_label: "Measures"
     type: number
@@ -1098,8 +1076,8 @@ view: sales_up_main_table {
   measure: average_CES {
     view_label: "Measures"
     type: average
-    sql: ${rsts_excitement_num}
-  } 
+    sql: ${rsts_excitement_num} ;;
+        }
 
 
   dimension: ytd_only {
@@ -1108,13 +1086,13 @@ view: sales_up_main_table {
     view_label: "_PoP"
     type: yesno
     sql:  (EXTRACT(DOY FROM ${TABLE}.rntl_accounting_date) < EXTRACT(DOY FROM current_date)
-                    OR
-                (EXTRACT(DOY FROM ${TABLE}.rntl_accounting_date) = EXTRACT(DOY FROM current_date) AND
-                EXTRACT(HOUR FROM ${TABLE}.rntl_accounting_date) < EXTRACT(HOUR FROM current_date))
-                    OR
-                (EXTRACT(DOY FROM ${TABLE}.rntl_accounting_date) = EXTRACT(DOY FROM current_date) AND
-                EXTRACT(HOUR FROM ${TABLE}.rntl_accounting_date) <= EXTRACT(HOUR FROM current_date) AND
-                EXTRACT(MINUTE FROM ${TABLE}.rntl_accounting_date) < EXTRACT(MINUTE FROM current_date)))  ;;
+    OR
+    (EXTRACT(DOY FROM ${TABLE}.rntl_accounting_date) = EXTRACT(DOY FROM current_date) AND
+    EXTRACT(HOUR FROM ${TABLE}.rntl_accounting_date) < EXTRACT(HOUR FROM current_date))
+    OR
+    (EXTRACT(DOY FROM ${TABLE}.rntl_accounting_date) = EXTRACT(DOY FROM current_date) AND
+    EXTRACT(HOUR FROM ${TABLE}.rntl_accounting_date) <= EXTRACT(HOUR FROM current_date) AND
+    EXTRACT(MINUTE FROM ${TABLE}.rntl_accounting_date) < EXTRACT(MINUTE FROM current_date)))  ;;
   }
 
 
@@ -1122,18 +1100,18 @@ view: sales_up_main_table {
   # ----- Sets of fields for drilling ------
   set: detail {
     fields: [
-	brnc_name,
-	brnc_pool_name,
-	cstm_name,
-	dto_name,
-	dfi_name,
-	age_name,
-	dtt_name,
-	dfr_name,
-	cstm_account_manager_name,
-	product_level3_name,
-	chrg_name
-	]
+      brnc_name,
+      brnc_pool_name,
+      cstm_name,
+      dto_name,
+      dfi_name,
+      age_name,
+      dtt_name,
+      dfr_name,
+      cstm_account_manager_name,
+      product_level3_name,
+      chrg_name
+    ]
   }
 
 }
