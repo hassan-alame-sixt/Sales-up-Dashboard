@@ -228,55 +228,56 @@ view: self_service_main_table {
     type: string
     sql: ${TABLE}.dtt_name ;;
   }
-  
+    
   dimension: abkz {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.abkz ;;
   }
-
+  
   dimension: account_owner_type {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.account_owner_type ;;
   }
-
+  
   dimension: acquired_by_rent_id {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.acquired_by_rent_id ;;
   }
 
-  dimension: acquired_rent_date {
-    view_label: "Date Columns"
-    type: time
-    sql: ${TABLE}.acquired_rent_date ;;
+  dimension_group: acquired_rent_date  {
+      view_label: "Date Columns"
+      type: time
+      timeframes: [raw, time, date, week, month, quarter, year]
+      sql: ${TABLE}.acquired_rent_date  ;;
   }
-
+    
   dimension: acquired_by_rent_region {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.acquired_by_rent_region ;;
   }
-
+  
   dimension: inside_sales_person_region {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.inside_sales_person_region ;;
   }
-
+  
   dimension: acquired_by_rent_saleschannel {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.acquired_by_rent_saleschannel ;;
   }
-
+  
   dimension: deal_amount {
     view_label: "KDNR Columns"
     type: number
     sql: ${TABLE}.deal_amount ;;
   }
-
+  
   dimension: total_sixt_potential {
     view_label: "KDNR Columns"
     type: number
