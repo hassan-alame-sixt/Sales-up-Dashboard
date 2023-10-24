@@ -1,4 +1,4 @@
-# The name of this view in Looker is "Self Service Main Table 2"
+# The name of this view in Looker is "Sales Up Main Table"
 
 view: sales_up_main_table {
   # The sql_table_name parameter indicates the underlying database table
@@ -14,7 +14,7 @@ view: sales_up_main_table {
   # This dimension will be called "Advanced Booking" in Explore.
 
   dimension: advanced_booking {
-    view_label: "Measures"
+    view_label: "Reservation Columns"
     type: number
     sql: ${TABLE}.advanced_booking ;;
   }
@@ -265,12 +265,14 @@ view: sales_up_main_table {
     view_label: "KDNR Columns"
     type: number
     sql: ${TABLE}.dfi ;;
+    drill_fields: [dto, cstm_kdnr]
   }
 
   dimension: dfi_name {
     view_label: "KDNR Columns"
     type: string
     sql: ${TABLE}.dfi_name ;;
+    drill_fields: [dto_name, cstm_name]
   }
 
   dimension: dfr {
@@ -307,6 +309,66 @@ view: sales_up_main_table {
     view_label: "AGE Columns"
     type: string
     sql: ${TABLE}.dtt_name ;;
+  }
+
+  dimension: abkz {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.abkz ;;
+  }
+
+  dimension: account_owner_type {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.account_owner_type ;;
+  }
+
+  dimension: acquired_by_rent_id {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.acquired_by_rent_id ;;
+  }
+
+  dimension: acquired_rent_date {
+    view_label: "Date Columns"
+    type: time
+    sql: ${TABLE}.acquired_rent_date ;;
+  }
+
+  dimension: acquired_by_rent_region {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.acquired_by_rent_region ;;
+  }
+
+  dimension: inside_sales_person_region {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.inside_sales_person_region ;;
+  }
+
+  dimension: acquired_by_rent_saleschannel {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.acquired_by_rent_saleschannel ;;
+  }
+
+  dimension: deal_amount {
+    view_label: "KDNR Columns"
+    type: number
+    sql: ${TABLE}.deal_amount ;;
+  }
+
+  dimension: total_sixt_potential {
+    view_label: "KDNR Columns"
+    type: number
+    sql: ${TABLE}.total_sixt_potential ;;
+  }
+  
+  dimension: total_customer_spend{
+    view_label: "KDNR Columns"
+    type: number
+    sql: ${TABLE}.total_customer_spend ;;
   }
 
   dimension: improved_revenue {
@@ -593,7 +655,7 @@ view: sales_up_main_table {
     type: number
     sql: ${TABLE}.rntl_one_way_mvnr ;;
   }
-  
+
   dimension: rntl_bev_mvnr {
     view_label: "Mietvertrag Columns"
     type: number
@@ -909,13 +971,13 @@ view: sales_up_main_table {
     type: count_distinct
     sql: ${rntl_bev_mvnr} ;;
   }
-  
+
   measure: ratio_bev_mvnrs {
     view_label: "Measures"
     type: number
-    sql: 1.0*${total_bev_mvnrs}/${total_mvnrs}
+    sql: 1.0*${total_bev_mvnrs}/${total_mvnrs} ;;
   }
-  
+
 
   measure: total_reservations {
       view_label: "Measures"
@@ -952,7 +1014,7 @@ view: sales_up_main_table {
     type: count
     drill_fields: [detail*]
     }
-  
+
   measure: RPD {
     view_label: "Measures"
     type: number
