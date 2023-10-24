@@ -17,7 +17,7 @@ and pdp.prtn_kdnr Not in (Select agnc_age
                       From "customer_shop"."pa_dim_agencies"))
 
 
-, cleansed_DFI as (
+, cleansed_DFI as (  
 select pdp.agnc_age
 From "customer_shop"."pa_dim_agencies" pdp
 Left Join "customer_shop"."pa_dim_partners" pdo On (pdp.agnc_parent_num = pdo.prtn_kdnr)
@@ -50,6 +50,22 @@ where rate_prl in (select rate_prl from sds_prod_rent_gg_dwh_current.rt_dim_rate
 -- and ch.rntl_mvnr =9497670359
 -- and ch.sys_deleted_flg = 0 and ch.sys_actual_flg = 1 
 group by 1,2,3)
+
+, sales_force as (
+select 
+  "meta.timestamp"
+, "company_data.customer_number" as prtn_kdnr
+, "inside_sales.account_owner_type" as account_owner_type --2
+, "inside_sales.acquired_by_rent_id" as acquired_by_rent_id --3
+, "inside_sales.acquired_rent_date" as acquired_rent_date --4
+, "inside_sales.acquired_by_rent_region" as acquired_by_rent_region --5
+, "inside_sales.account_owner_region" as inside_sales_person_region --10
+, "inside_sales.acquired_by_rent_saleschannel" as acquired_by_rent_saleschannel --7
+, "potential_information.deal_amount" as deal_amount --6
+, "potential_information.total_sixt_potential_without_row" as total_sixt_potential --8
+, "potential_information.total_customer_spend_without_row" as total_customer_spend --9
+, row_number() over (partition by "company_data.customer_number" order by "meta.timestamp" desc) as rn
+from "sds_prod_ingestion_store_public_datalake"."customerorgv1" c)
 
 
 , revenue_by_country as (
@@ -153,6 +169,7 @@ select
 , case when dfi.agnc_age is null then False else True end as cleansed_dfi
 
 , rs.cstm_kdnr
+, pa.prtn_registration_range_code as abkz
 , pa.prtn_name as cstm_name
 , pa.oprt_bed as kdnr_prt_bed --Account Owner
 , pa.oprt_bed_vkni as kdnr_bed_vkni --Inside Sales
@@ -169,6 +186,16 @@ select
 , pa.prtn_parent_calc_num as dfi
 , pa.prtn_parent_calc_name as dfi_name
 , dc.domestic_country as prtn_parent_domestic_country
+
+, sf.account_owner_type
+, sf.acquired_by_rent_id
+, sf.acquired_rent_date
+, sf.acquired_by_rent_region
+, sf.inside_sales_person_region
+, sf.acquired_by_rent_saleschannel
+, sf.deal_amount
+, sf.total_sixt_potential
+, sf.total_customer_spend
 
 , rs.agnc_age_agency1 as agnc_age
 , ag.prtn_name as age_name
@@ -306,6 +333,7 @@ full join "rent_shop"."rs_fct_reservations" re on re.rntl_mvnr = rs.rntl_mvnr
 left join "customer_shop"."ra_fct_satisfactions" cs on cs.rntl_mvnr = rs.rntl_mvnr
 left join "customer_shop"."pa_dim_partners" pa on pa.prtn_kdnr = rs.cstm_kdnr
 left join "customer_shop"."pa_dim_partners" ag on ag.prtn_kdnr = rs.agnc_age_agency1
+left join sales_force sf on sf.prtn_kdnr = pa.prtn_kdnr and sf.rn = 1 
 left join ranked_revenue_by_country dc on dc.prtn_parent_calc_num = pa.prtn_parent_calc_num and dc.country_revenue_rank = 1
 left join "hr_shop"."op_dim_operators" op1 on op1.oprt_bed = pa.oprt_bed 
 left join "hr_shop"."op_dim_operators" op2 on op2.oprt_bed = ag.oprt_bed
@@ -333,7 +361,7 @@ where year(rs.rntl_accounting_date) >= 2019
 , rs.rntl_card_status_level1
 , rs.rntl_card_status_level2
 , rs.rntl_card_status_level3
-, rs.rntl_card_status_level3_name
+, rs.rntl_card_status_level3_name 
 /*
 
 --Flags

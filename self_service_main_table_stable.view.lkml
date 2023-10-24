@@ -1,4 +1,5 @@
 # The name of this view in Looker is "Self Service Main Table"
+
 view: self_service_main_table {
   # The sql_table_name parameter indicates the underlying database table
   # to be used for all fields in this view.
@@ -227,6 +228,66 @@ view: self_service_main_table {
     type: string
     sql: ${TABLE}.dtt_name ;;
   }
+  
+  dimension: abkz {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.abkz ;;
+  }
+
+  dimension: account_owner_type {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.account_owner_type ;;
+  }
+
+  dimension: acquired_by_rent_id {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.acquired_by_rent_id ;;
+  }
+
+  dimension: acquired_rent_date {
+    view_label: "Date Columns"
+    type: time
+    sql: ${TABLE}.acquired_rent_date ;;
+  }
+
+  dimension: acquired_by_rent_region {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.acquired_by_rent_region ;;
+  }
+
+  dimension: inside_sales_person_region {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.inside_sales_person_region ;;
+  }
+
+  dimension: acquired_by_rent_saleschannel {
+    view_label: "KDNR Columns"
+    type: string
+    sql: ${TABLE}.acquired_by_rent_saleschannel ;;
+  }
+
+  dimension: deal_amount {
+    view_label: "KDNR Columns"
+    type: number
+    sql: ${TABLE}.deal_amount ;;
+  }
+
+  dimension: total_sixt_potential {
+    view_label: "KDNR Columns"
+    type: number
+    sql: ${TABLE}.total_sixt_potential ;;
+  }
+  
+  dimension: total_customer_spend{
+    view_label: "KDNR Columns"
+    type: number
+    sql: ${TABLE}.total_customer_spend ;;
+  }
 
   dimension: improved_revenue {
     view_label: "Other Columns"
@@ -403,43 +464,37 @@ view: self_service_main_table {
     view_label: "Measures"
     type: sum
     sql: ${rntl_revenue} ;;
-    value_format: "€0.00"
-  }
+    value_format: "€0.00"}
 
   measure: average_rntl_revenue {
     view_label: "Measures"
     type: average
     sql: ${rntl_revenue} ;;
-    value_format: "€0.00"
-  }
+    value_format: "€0.00"}
 
 
   measure: total_rental_days {
     view_label: "Measures"
     type: sum
-    sql: ${rental_days} ;;
-  }
+    sql: ${rental_days} ;;}
 
 
   measure: average_rental_days {
     view_label: "Measures"
     type: average
-    sql: ${rental_days} ;;
-  }
+    sql: ${rental_days} ;;}
 
 
   measure: total_advanced_booking {
     view_label: "Measures"
     type: sum
-    sql: ${advanced_booking} ;;
-  }
+    sql: ${advanced_booking} ;;}
 
 
   measure: average_advanced_booking {
     view_label: "Measures"
     type: average
-    sql: ${advanced_booking} ;;
-  }
+    sql: ${advanced_booking} ;;}
 
 
   dimension: rntl_type {
@@ -472,16 +527,16 @@ view: self_service_main_table {
     sql: ${TABLE}.product_level3_long_short ;;
   }
 
-  dimension: rsrv_cancelled_flg {
+  dimension: rsrv_cancelled_resn {
     view_label: "Reservation Columns"
     type: number
-    sql: ${TABLE}.rsrv_cancelled_flg ;;
+    sql: ${TABLE}.rsrv_cancelled_resn ;;
   }
 
-  dimension: rsrv_noshow_flg {
+  dimension: rsrv_noshow_resn {
     view_label: "Reservation Columns"
     type: number
-    sql: ${TABLE}.rsrv_noshow_flg ;;
+    sql: ${TABLE}.rsrv_noshow_resn ;;
   }
 
   dimension: rsrv_resn {
