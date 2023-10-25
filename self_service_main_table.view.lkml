@@ -79,24 +79,24 @@ view: sales_up_main_table {
     sql: ${TABLE}.aktv ;;
   }
 
-  dimension: app_reservation {
+  dimension: app_reservation_resn {
     view_label: "Reservation Columns"
     type: yesno
-    sql: ${TABLE}.app_reservation ;;
+    sql: ${TABLE}.app_reservation_resn ;;
   }
 
   dimension: app_reservation_revenue {
     view_label: "Other Columns"
     hidden: yes
     type: number
-    sql: case when ${TABLE}.app_reservation is True then ${TABLE}.improved_revenue else null end;;
+    sql: ${TABLE}.app_reservation_revenue ;;
   }
 
   dimension: app_reservation_mvnr {
     view_label: "Other Columns"
     hidden: yes
     type: number
-    sql: case when ${TABLE}.app_reservation is True then ${TABLE}.rntl_mvnr else null end;;
+    sql: ${TABLE}.app_reservation_mvnr ;;
   }
 
   dimension: brnc_city {
@@ -400,14 +400,14 @@ view: sales_up_main_table {
     view_label: "Other Columns"
     hidden: yes
     type: number
-    sql: case when ${TABLE}.internet_reservation is True then ${TABLE}.improved_revenue else null end;;
+    sql: ${TABLE}.internet_reservation_revenue ;;
   }
 
   dimension: internet_reservation_mvnr {
     view_label: "Other Columns"
     hidden: yes
     type: number
-    sql: case when ${TABLE}.internet_reservation is True then ${TABLE}.rntl_mvnr else null end;;
+    sql: ${TABLE}.internet_reservation_mvnr ;;
   }
 
   dimension: is_domestic_country {
@@ -420,14 +420,14 @@ view: sales_up_main_table {
     view_label: "Other Columns"
     hidden: yes
     type: number
-    sql: case when ${TABLE}.is_domestic_country is True then ${TABLE}.improved_revenue else 0 end;;
+    sql: ${TABLE}.domestic_revenue ;;
   }
 
   dimension: non_domestic_revenue {
     view_label: "Other Columns"
     hidden: yes
     type: number
-    sql: case when ${TABLE}.is_domestic_country is False then ${TABLE}.improved_revenue else 0 end;;
+    sql: ${TABLE}.non_domestic_revenue ;;
   }
 
   dimension: kdnr_account_owner {

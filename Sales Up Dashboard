@@ -88,7 +88,7 @@ select
 , row_number() over (partition by prtn_parent_calc_num order by rntl_revenue desc) as country_revenue_rank 
 from revenue_by_country)
 
-
+, initial_pull as (
 select
   re.rsrv_resn
 , re.rsrv_new_customer -- New vs. Existing ???
@@ -225,6 +225,12 @@ select
        else null 
        end as rsrv_noshow_resn 
 
+, case when re.rsrv_yield_source_level2 in ('Internet Public','Internet Else','Internet Corporate') then rs.rntl_mvnr 
+       else null 
+       end as internet_reservation_mvnr
+, case when re.rsrv_yield_source_level2 = 'Mobile' then rs.rntl_mvnr 
+       else null 
+       end as app_reservation_mvnr
 , case when rs.brnc_code_handover = rs.brnc_code_return then rs.rntl_mvnr 
        else null 
        end as rntl_one_way_mvnr
@@ -233,7 +239,7 @@ select
        end as rntl_correction_mvnr 
 , case when br.brnc_country = dc.domestic_country then rs.rntl_mvnr
        else null 
-       end as is_domestic_country_mvnr
+       end as domestic_country_mvnr
 , case when min(ve.vhat_elty) over (partition by rs.rntl_mvnr) = 'E' then rs.rntl_mvnr 
        else null 
        end as rntl_bev_mvnr
@@ -373,7 +379,157 @@ left join "rent_shop"."ch_fct_ra_charges" ch -- charge usage/revenue
 left join "rent_shop"."ch_dim_charges" cn         -- charge code names
     on cn.chrg_chco = ch.chra_chco
     
-where year(rs.rntl_accounting_date) >= 2019
+where year(rs.rntl_accounting_date) >= 2019 )
+
+select 
+  i.rsrv_resn
+, i.rsrv_new_customer
+, i.rsrv_status
+, i.rsrv_status_extended
+, i.rsrv_source_chl1
+, i.rsrv_source_chl2
+, i.rsrv_source_chl3
+, i.rsrv_yield_source
+, i.rsrv_yield_source_level2
+, i.rsrv_yield_source_level3
+, i.rsrv_posl_country_code
+, i.rntl_mvnr
+, i.rntl_mser
+, i.rntl_konr
+, i.brnc_code_handover
+, i.brnc_name
+, i.brnc_operator
+, i.brnc_main_type
+, i.brnc_type
+, i.brnc_pool_code
+, i.brnc_pool_name
+, i.brnc_continent
+, i.brnc_country_code_iso
+, i.brnc_country
+, i.brnc_active_flg
+, i.brnc_corporate_franchise
+, i.brnc_country_region
+, i.brnc_country_region_franchise_breakdown
+, i.brnc_region
+, i.brnc_state
+, i.brnc_city
+, i.cleansed_dfr
+, i.cleansed_dfi
+, i.cstm_kdnr
+, i.abkz
+, i.cstm_name
+, i.kdnr_prt_bed
+, i.kdnr_bed_vkni
+, i.kdnr_highest_person_region
+, i.kdnr_highest_working_channel
+, i.kdnr_prtn_person_region
+, i.kdnr_prtn_working_channel
+, i.kdnr_account_owner
+, i.kdnr_highest_linked
+, i.dto
+, i.dto_name
+, i.dfi
+, i.dfi_name
+, i.prtn_parent_domestic_country
+, i.account_owner_type
+, i.acquired_by_rent_id
+, i.acquired_rent_date
+, i.acquired_by_rent_region
+, i.inside_sales_person_region
+, i.acquired_by_rent_saleschannel
+, i.deal_amount
+, i.total_sixt_potential
+, i.total_customer_spend
+, i.agnc_age
+, i.age_name
+, i.age_prt_bed
+, i.age_highest_person_region
+, i.age_highest_working_channel
+, i.age_prtn_person_region
+, i.age_prtn_working_channel
+, i.age_account_owner
+, i.age_highest_linked
+, i.dtt
+, i.dtt_name
+, i.dfr
+, i.dfr_name
+, i.rntl_type_code
+, i.rntl_type
+, i.rntl_payment_type
+, i.internet_reservation_resn
+, i.app_reservation_resn
+, i.rsrv_cancelled_resn
+, i.rsrv_noshow_resn
+, i.internet_reservation_mvnr
+, i.app_reservation_mvnr
+, i.rntl_one_way_mvnr
+, i.rntl_correction_mvnr
+, i.domestic_country_mvnr
+, i.rntl_bev_mvnr
+, i.cstm_account_manager_num
+, i.cstm_account_manager_name
+, i.rsrv_date
+, i.rntl_handover_datm
+, i.rntl_return_datm
+, i.rntl_accounting_date
+, i.vhgr_crs
+, i.vhcl_group
+, i.vhcl_checked_out_group
+, i.vhcl_type
+, i.vhcl_category_level1
+, i.vhcl_category_level2
+, i.vhcl_category_level3
+, i.vhcl_category_level4
+, i.vhcl_owner_status
+, i.vhat_elty
+, i.rate_id
+, i.rate_prl
+, i.rate_bundle
+, i.rate_type
+, i.rate_designation
+, i.rate_type_level1_gare
+, i.rate_type_level2_glev
+, i.rate_type_level3_aknm
+, i.rate_type_level4_aktv
+, i.AKTV
+, i.rate_crm_type_gare_clv
+, i.rate_gdat
+, i.rate_vdat
+, i.rate_next_gdat
+, i.rate_validity_end
+, i.product_level1_source
+, i.product_level2_car_truck
+, i.product_level2_cnb_vnt
+, i.product_level3_name
+, i.chra_pos
+, i.chra_inty
+, i.chra_chco
+, i.chrg_name
+, i.rsts_excitement_num
+, i.rsts_recommendation_num
+, i.rntl_revenue
+, i.rntl_discount
+, i.rental_days
+, i.advanced_booking
+, i.chra_value
+, i.Time_and_Mileage
+, i.improved_revenue
+, i.Inc_tot
+
+, case when i.internet_reservation_mvnr is not null then i.improved_revenue
+       else null 
+       end as internet_reservation_revenue
+, case when i.app_reservation_mvnr is not null then i.improved_revenue
+       else null 
+       end as app_reservation_revenue
+, case when i.domestic_country_mvnr is not null then i.improved_revenue
+       else null 
+       end as domestic_revenue
+, case when i.domestic_country_mvnr is null then i.improved_revenue
+       else null 
+       end as non_domestic_revenue
+
+from initial_pull i
 
 /*
 --Rental Card Status
