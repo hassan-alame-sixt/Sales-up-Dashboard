@@ -103,11 +103,6 @@ select
 --, re.mndt_code
 --, re.mndt_code_pos
 , re.rsrv_posl_country_code
-, case when re.rsrv_yield_source_level2 in ('Internet Public','Internet Else','Internet Corporate') then True else False end as internet_reservation
-, case when re.rsrv_yield_source_level2 = 'Mobile' then True else False end as app_reservation
-
-, case when re.rsrv_cancelled_flg = 1 then re.rsrv_resn else null end as rsrv_cancelled_resn
-, case when re.rsrv_noshow_flg = 1 then re.rsrv_resn else null end as rsrv_noshow_resn 
 
 , rs.rntl_mvnr  
 , rs.rntl_mser
@@ -124,7 +119,7 @@ select
 , br.brnc_country_code_iso
 , br.brnc_country
 , brnc_active_flg 
-, case when br.brnc_country = dc.domestic_country then True else False end as is_domestic_country
+
 
 , case when br.brnc_country_code_iso in ('DE','AT','CH','FR','MC','GB','IT','ES','BE','NL','LU','US','CA') then 'Corporate' 
        else 'Franchise' 
@@ -217,22 +212,31 @@ select
 , rs.rntl_type
 , rs.rntl_payment_type
 
+, case when re.rsrv_yield_source_level2 in ('Internet Public','Internet Else','Internet Corporate') then re.rsrv_resn 
+       else null 
+       end as internet_reservation_resn
+, case when re.rsrv_yield_source_level2 = 'Mobile' then re.rsrv_resn 
+       else null 
+       end as app_reservation_resn
+, case when re.rsrv_cancelled_flg = 1 then re.rsrv_resn 
+       else null 
+       end as rsrv_cancelled_resn
+, case when re.rsrv_noshow_flg = 1 then re.rsrv_resn 
+       else null 
+       end as rsrv_noshow_resn 
 
---MVNR Granularity
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then 1 else 0 end as mvnr_count
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
-                                   and rs.brnc_code_handover = rs.brnc_code_return then rs.rntl_mvnr 
-       else null end as rntl_one_way_mvnr
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
-                                   and max(rs.rntl_konr) over (partition by rs.rntl_mvnr) = 0 then rs.rntl_mvnr 
-       else null end as rntl_correction_mvnr 
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_excitement_num 
-       else null end as rsts_excitement_num 
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_recommendation_num 
-       else null end as rsts_recommendation_num 
-, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
-                                   and min(ve.vhat_elty) over (partition by rs.rntl_mvnr) = 'E' then rs.rntl_mvnr 
-       else null end as rntl_bev_mvnr
+, case when rs.brnc_code_handover = rs.brnc_code_return then rs.rntl_mvnr 
+       else null 
+       end as rntl_one_way_mvnr
+, case when max(rs.rntl_konr) over (partition by rs.rntl_mvnr) = 0 then rs.rntl_mvnr 
+       else null 
+       end as rntl_correction_mvnr 
+, case when br.brnc_country = dc.domestic_country then rs.rntl_mvnr
+       else null 
+       end as is_domestic_country_mvnr
+, case when min(ve.vhat_elty) over (partition by rs.rntl_mvnr) = 'E' then rs.rntl_mvnr 
+       else null 
+       end as rntl_bev_mvnr
 
 
 , rs.cstm_account_manager_num
@@ -302,30 +306,45 @@ select
 , ch.chra_chco
 , cn.chrg_name 
 
+--MVNR Granularity case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) 
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_excitement_num 
+       else null 
+       end as rsts_excitement_num--To attach only 1 rntl_revenue per mvnr 
+, case when rs.rntl_mser = 0 and (ch.chra_mvnr is null or (ch.chra_pos = 1 and ch.chra_inty = 'M')) then cs.rsts_recommendation_num 
+       else null 
+       end as rsts_recommendation_num--To attach only 1 rntl_revenue per mvnr 
 
 --MSER Granularity
 , case when ch.chra_mvnr is null then rs.rntl_revenue 
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_revenue 
-       else null end as rntl_revenue--To attach only 1 rntl_revenue per mvnr
+       else null 
+       end as rntl_revenue--To attach only 1 rntl_revenue per mser
 , case when ch.chra_mvnr is null then rs.rntl_discount
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_discount 
-       else null end as rntl_discount--To attach only 1 rntl_revenue per mvnr
+       else null 
+       end as rntl_discount--To attach only 1 rntl_revenue per mser
 , case when ch.chra_mvnr is null then rs.rntl_rental_days
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then rs.rntl_rental_days 
-       else null end as rental_days--To attach only 1 rntl_revenue per mvnr
+       else null 
+       end as rental_days--To attach only 1 rntl_revenue per mser
 , case when ch.chra_mvnr is null then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then date_diff('day', re.rsrv_date, rs.rntl_handover_date)
-       else null end as advanced_booking--To attach only 1 rntl_revenue per mvnr
+       else null 
+       end as advanced_booking--To attach only 1 rntl_revenue per mser
 
-
+--CHCO Granularity
 , ch.chra_value
-, case when cn.chrg_level1_care = 'Time & Mileage' then ch.chra_value else null end as Time_and_Mileage
+, case when cn.chrg_level1_care = 'Time & Mileage' then ch.chra_value 
+       else null 
+       end as Time_and_Mileage
 , case when ch.chra_mvnr is null then rs.rntl_revenue
        when ((count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)- count(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) != 0) and ch.chra_value is null then 1.0*(rs.rntl_revenue- coalesce(sum(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr),0) +rs.rntl_discount)/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)-count(ch.chra_value) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr))
-       else ch.chra_value - 1.0*rs.rntl_discount/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) end as improved_revenue
+       else ch.chra_value - 1.0*rs.rntl_discount/(count(*) over (partition by ch.chra_mvnr, ch.chra_mser, ch.chra_konr)) 
+       end as improved_revenue
 , case when ch.chra_mvnr is null then inc.Inc_tot
        when ch.chra_mvnr is not null and ch.chra_pos = 1 and ch.chra_inty = 'M' then inc.Inc_tot
-       else null end as Inc_tot--To attach only 1 rntl_revenue per mvnr
+       else null 
+       end as Inc_tot--To attach only 1 rntl_revenue per mvnr
 
 
 from "rent_shop"."ra_fct_rental_series" rs
