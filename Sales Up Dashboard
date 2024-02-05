@@ -7,7 +7,22 @@ parquet_compression = 'SNAPPY') as
 /*END: Specifying table destination*/
 
 
-With cleansed_DFR as (
+With sixt_unlimited as (
+Select 
+  prtn_kdnr
+, rnsb_aonr
+, Cast(rnsb_handover_date as date) AS start_date
+, Cast(rnsb_return_date as date) AS end_date
+, Cast(g.date_date as date) as calendar_date
+, (((rnsb_month_rate) / Extract(Day From (date_add('month', 1, date_trunc('month', g.date_date)) - date_trunc('month', g.date_date))))/ (gd.exrd_exchange_rate)) as Revenue_per_day
+From "rent_shop"."ra_fct_subscriptions" r
+Left Join "common_shop"."ge_dim_dates" g on (Cast(g.date_date as date) between Cast(rnsb_handover_date as date) and Cast(rnsb_return_date as date))
+left Join "common_shop"."ge_dim_daily_exchange_rates" gd On (Replace(r.rnsb_currency_code,'CHF','SFR') = gd.exrd_foreign_currency_code)
+Where exrd_rate_date = date_trunc('month', Cast(g.date_date as date))
+) 
+
+
+, cleansed_DFR as (
 select pdp.prtn_kdnr
 From "customer_shop"."pa_dim_partners" pdp
 Left Join "customer_shop"."pa_dim_partners" pdo On (pdp.prtn_parent_num = pdo.prtn_kdnr)
@@ -24,7 +39,7 @@ Left Join "customer_shop"."pa_dim_partners" pdo On (pdp.agnc_parent_num = pdo.pr
 Where pdo.prtn_registration_range_code <> 'DFI')
 
 
-, inc_charges as (
+, inc_charges as ( --Maintenance complication
 select
 ch.rntl_mvnr,
 ch.rntl_mser,
@@ -51,22 +66,6 @@ where rate_prl in (select rate_prl from sds_prod_rent_gg_dwh_current.rt_dim_rate
 -- and ch.sys_deleted_flg = 0 and ch.sys_actual_flg = 1 
 group by 1,2,3)
 
-, sales_force as (
-select 
-  "meta.timestamp"
-, "company_data.customer_number" as prtn_kdnr
-, "inside_sales.account_owner_type" as account_owner_type --2
-, "inside_sales.acquired_by_rent_id" as acquired_by_rent_id --3
-, "inside_sales.acquired_rent_date" as acquired_rent_date --4
-, "inside_sales.acquired_by_rent_region" as acquired_by_rent_region --5
-, "inside_sales.account_owner_region" as inside_sales_person_region --10
-, "inside_sales.acquired_by_rent_saleschannel" as acquired_by_rent_saleschannel --7
-, "potential_information.deal_amount" as deal_amount --6
-, "potential_information.total_sixt_potential_without_row" as total_sixt_potential --8
-, "potential_information.total_customer_spend_without_row" as total_customer_spend --9
-, row_number() over (partition by "company_data.customer_number" order by "meta.timestamp" desc) as rn
-from "sds_prod_ingestion_store_public_datalake"."customerorgv1" c)
-
 
 , revenue_by_country as (
 select 
@@ -87,6 +86,7 @@ select
 , rntl_revenue 
 , row_number() over (partition by prtn_parent_calc_num order by rntl_revenue desc) as country_revenue_rank 
 from revenue_by_country)
+
 
 , initial_pull as (
 select
@@ -112,6 +112,7 @@ select
 , br.brnc_name
 , br.brnc_operator
 , br.brnc_main_type
+, br.brnc_type_code
 , br.brnc_type
 , br.brnc_pool_code
 , br.brnc_pool_name
@@ -172,7 +173,7 @@ select
 , pa.prtn_highest_working_channel as kdnr_highest_working_channel
 , pa.prtn_person_region as kdnr_prtn_person_region --Team level
 , pa.prtn_working_channel as kdnr_prtn_working_channel --Sales Region
-, concat(op1.oprt_last_name,', ',op1.oprt_first_name) as kdnr_account_owner
+, concat(op1.oprt_first_name, ' ', op1.oprt_last_name) as kdnr_account_owner
 , case when pa.prtn_parent_num = 0 and pa.prtn_subsidiary_num = 0 then 'Highest Account' else 'Linked Account' end as kdnr_highest_linked
 
 , pa.prtn_subsidiary_calc_num as dto
@@ -182,15 +183,15 @@ select
 , pa.prtn_parent_calc_name as dfi_name
 , dc.domestic_country as prtn_parent_domestic_country
 
-, sf.account_owner_type
-, sf.acquired_by_rent_id
-, sf.acquired_rent_date
-, sf.acquired_by_rent_region
-, sf.inside_sales_person_region
-, sf.acquired_by_rent_saleschannel
-, sf.deal_amount
-, sf.total_sixt_potential
-, sf.total_customer_spend
+, pa.prtn_account_owner_type as sf_account_owner_type
+, pa.prtn_acquired_by_rent_id as sf_acquired_by_rent_id
+, pa.prtn_acquired_rent_date as sf_acquired_rent_date
+, pa.prtn_acquired_by_rent_region as sf_acquired_by_rent_region
+, pa.prtn_inside_sales_person_region as sf_inside_sales_person_region
+, pa.prtn_acquired_by_rent_saleschannel as sf_acquired_by_rent_saleschannel
+, pa.prtn_deal_amount as sf_deal_amount
+, pa.prtn_total_sixt_potential as sf_total_sixt_potential
+, pa.prtn_total_customer_spend as sf_total_customer_spend
 
 , rs.agnc_age_agency1 as agnc_age
 , ag.prtn_name as age_name
@@ -358,7 +359,6 @@ full join "rent_shop"."rs_fct_reservations" re on re.rntl_mvnr = rs.rntl_mvnr
 left join "customer_shop"."ra_fct_satisfactions" cs on cs.rntl_mvnr = rs.rntl_mvnr
 left join "customer_shop"."pa_dim_partners" pa on pa.prtn_kdnr = rs.cstm_kdnr
 left join "customer_shop"."pa_dim_partners" ag on ag.prtn_kdnr = rs.agnc_age_agency1
-left join sales_force sf on sf.prtn_kdnr = pa.prtn_kdnr and sf.rn = 1 
 left join ranked_revenue_by_country dc on dc.prtn_parent_calc_num = pa.prtn_parent_calc_num and dc.country_revenue_rank = 1
 left join "hr_shop"."op_dim_operators" op1 on op1.oprt_bed = pa.oprt_bed 
 left join "hr_shop"."op_dim_operators" op2 on op2.oprt_bed = ag.oprt_bed
@@ -378,8 +378,8 @@ left join "rent_shop"."ch_fct_ra_charges" ch -- charge usage/revenue
     -- sum over chrg_inty ! -> Main + Secondary invoice
 left join "rent_shop"."ch_dim_charges" cn         -- charge code names
     on cn.chrg_chco = ch.chra_chco
-    
-where year(rs.rntl_accounting_date) >= 2019 )
+    where year (rs.rntl_accounting_date)  >= 2019) 
+
 
 select 
   i.rsrv_resn
@@ -400,6 +400,7 @@ select
 , i.brnc_name
 , i.brnc_operator
 , i.brnc_main_type
+, i.brnc_type_code
 , i.brnc_type
 , i.brnc_pool_code
 , i.brnc_pool_name
@@ -420,26 +421,28 @@ select
 , i.cstm_name
 , i.kdnr_prt_bed
 , i.kdnr_bed_vkni
-, i.kdnr_highest_person_region
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'GAM - Germany' else i.kdnr_highest_person_region end as kdnr_highest_person_region --AAFES: Set highest level region
 , i.kdnr_highest_working_channel
 , i.kdnr_prtn_person_region
-, i.kdnr_prtn_working_channel
-, i.kdnr_account_owner
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'Global Accounts' else i.kdnr_prtn_working_channel end as kdnr_prtn_working_channel --AAFES: Set highest level working channel
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'Gulden' else i.kdnr_account_owner end as kdnr_account_owner --AAFES: Set default account owner 
 , i.kdnr_highest_linked
 , i.dto
 , i.dto_name
-, i.dfi
-, i.dfi_name
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 19434019 else i.dfi end as dfi --AAFES: Set default account number
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'AAFES Dummy account'  else  i.dfi_name end as dfi_name --AAFES: Set default account name 
 , i.prtn_parent_domestic_country
-, i.account_owner_type
-, i.acquired_by_rent_id
-, i.acquired_rent_date
-, i.acquired_by_rent_region
-, i.inside_sales_person_region
-, i.acquired_by_rent_saleschannel
-, i.deal_amount
-, i.total_sixt_potential
-, i.total_customer_spend
+
+, i.sf_account_owner_type
+, i.sf_acquired_by_rent_id
+, i.sf_acquired_rent_date
+, i.sf_acquired_by_rent_region
+, i.sf_inside_sales_person_region
+, i.sf_acquired_by_rent_saleschannel
+, i.sf_deal_amount
+, i.sf_total_sixt_potential
+, i.sf_total_customer_spend
+
 , i.agnc_age
 , i.age_name
 , i.age_prt_bed
@@ -501,6 +504,7 @@ select
 , i.product_level2_car_truck
 , i.product_level2_cnb_vnt
 , i.product_level3_name
+, concatenate(i.product_level2_car_truck, ' - ', i.product_level3_name) as product
 , i.chra_pos
 , i.chra_inty
 , i.chra_chco
@@ -530,6 +534,7 @@ select
        end as non_domestic_revenue
 
 from initial_pull i
+where year(i.rntl_accounting_date) >= 2019
 
 /*
 --Rental Card Status
@@ -593,4 +598,24 @@ from initial_pull i
 , rt.rate_crm_type_gare_clv
 , rt.rate_designation
 left join "rent_shop"."rt_dim_rates" rt on rt.rate_prl = rs.rate_prl
+*/
+
+
+/*
+--Old SalesForce Pull
+, sales_force as (
+select 
+  "meta.timestamp"
+, "company_data.customer_number" as prtn_kdnr
+, "inside_sales.account_owner_type" as account_owner_type --2
+, "inside_sales.acquired_by_rent_id" as acquired_by_rent_id --3
+, "inside_sales.acquired_rent_date" as acquired_rent_date --4
+, "inside_sales.acquired_by_rent_region" as acquired_by_rent_region --5
+, "inside_sales.account_owner_region" as inside_sales_person_region --10
+, "inside_sales.acquired_by_rent_saleschannel" as acquired_by_rent_saleschannel --7
+, "potential_information.deal_amount" as deal_amount --6
+, "potential_information.total_sixt_potential_without_row" as total_sixt_potential --8
+, "potential_information.total_customer_spend_without_row" as total_customer_spend --9
+, row_number() over (partition by "company_data.customer_number" order by "meta.timestamp" desc) as rn
+from "sds_prod_ingestion_store_public_datalake"."customerorgv1" c)
 */
