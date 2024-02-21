@@ -6,11 +6,10 @@ parquet_compression = 'SNAPPY') as
 --Table Granularity is rs.rntl_mvnr, rs.rntl_mser, rs.rntl_konr, ch.chra_pos, ch.chra_inty + re.rsrv_resn
 /*END: Specifying table destination*/
 
-
-SELECT * FROM "sds_prod_ingestion_store_public_datalake"."salespersonworkingchannel" limit 10;
+--Two filters on Reservations fact table 
 
 With sixt_unlimited as (
-Select 
+select 
   r.prtn_kdnr
 , r.rnsb_aonr
 , r.mndt_code 
@@ -27,6 +26,29 @@ left Join "common_shop"."ge_dim_daily_exchange_rates" gd On (Replace(r.rnsb_curr
 Where exrd_rate_date = date_trunc('month', Cast(g.date_date as date))
 ) 
 
+, user_config_data as ( --sucd_id is key sucd_personnel_number is also key but has nulls
+select 
+  sucd_id 
+, sucd_personnel_number
+, sucd_federation_identifier
+, sucd_working_country
+, sucd_working_channel
+, sucd_sales_person_tpye
+, sucd_sales_person_region
+, sucd_qv_access_flg
+, sucd_qv_dashboard
+, sucd_dashboard_regions
+, sucd_agency_access_flg
+, sucd_agency_qv_dashboard
+, sucd_user_country
+, sys_data_source
+, sys_taken_datm
+, sys_taken_grain_time
+, sys_user
+, sys_actual_flg
+, sys_deleted_flg
+from "customer_shop"."sa_fct_user_config_data"
+)
 
 , cleansed_DFR as (
 select pdp.prtn_kdnr
@@ -175,8 +197,8 @@ select
 , pa.prtn_name as cstm_name
 , pa.oprt_bed as kdnr_prt_bed --Account Owner
 , pa.oprt_bed_vkni as kdnr_bed_vkni --Inside Sales
-prtn_blocked_status_code--Check AGAIN
-prtn_blocked_status--Check AGAIN
+, pa.prtn_blocked_status_code--Check AGAIN
+, pa.prtn_blocked_status--Check AGAIN
 , pa.prtn_highest_person_region as kdnr_highest_person_region
 , pa.prtn_highest_working_channel as kdnr_highest_working_channel
 , pa.prtn_person_region as kdnr_prtn_person_region --Team level
@@ -361,7 +383,7 @@ prtn_blocked_status--Check AGAIN
        else null 
        end as Inc_tot--To attach only 1 rntl_revenue per mvnr
 
-
+"rent_shop"."ra_fct_rental_series".rntl_delivery_flg
 from "rent_shop"."ra_fct_rental_series" rs
 full join "rent_shop"."rs_fct_reservations" re on re.rntl_mvnr = rs.rntl_mvnr
 left join "customer_shop"."ra_fct_satisfactions" cs on cs.rntl_mvnr = rs.rntl_mvnr
@@ -370,6 +392,7 @@ left join "customer_shop"."pa_dim_partners" ag on ag.prtn_kdnr = rs.agnc_age_age
 left join ranked_revenue_by_country dc on dc.prtn_parent_calc_num = pa.prtn_parent_calc_num and dc.country_revenue_rank = 1
 left join "hr_shop"."op_dim_operators" op1 on op1.oprt_bed = pa.oprt_bed 
 left join "hr_shop"."op_dim_operators" op2 on op2.oprt_bed = ag.oprt_bed
+left join user_config_data on ucd on ucd.sucd_personnel_number = pa.oprt_bed
 left join "common_shop"."br_dim_branches" br on br.brnc_code = rs.brnc_code_handover
 left join "fleet_shop"."ve_dim_vehicles" ve on ve.vhcl_int_num = rs.vhcl_int_num
 left join cleansed_DFR dfr on dfr.prtn_kdnr = rs.cstm_kdnr
