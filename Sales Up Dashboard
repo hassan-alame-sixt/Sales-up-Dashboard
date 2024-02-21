@@ -7,14 +7,20 @@ parquet_compression = 'SNAPPY') as
 /*END: Specifying table destination*/
 
 
+SELECT * FROM "sds_prod_ingestion_store_public_datalake"."salespersonworkingchannel" limit 10;
+
 With sixt_unlimited as (
 Select 
-  prtn_kdnr
-, rnsb_aonr
-, Cast(rnsb_handover_date as date) AS start_date
-, Cast(rnsb_return_date as date) AS end_date
+  r.prtn_kdnr
+, r.rnsb_aonr
+, r.mndt_code 
+, r.rnsb_status
+, r.vhcl_group
+, r.sys_actual_flg
+, Cast(r.rnsb_handover_date as date) AS start_date
+, Cast(r.rnsb_return_date as date) AS end_date
 , Cast(g.date_date as date) as calendar_date
-, (((rnsb_month_rate) / Extract(Day From (date_add('month', 1, date_trunc('month', g.date_date)) - date_trunc('month', g.date_date))))/ (gd.exrd_exchange_rate)) as Revenue_per_day
+, (((r.rnsb_month_rate) / Extract(Day From (date_add('month', 1, date_trunc('month', g.date_date)) - date_trunc('month', g.date_date))))/ (gd.exrd_exchange_rate)) as Revenue_per_day
 From "rent_shop"."ra_fct_subscriptions" r
 Left Join "common_shop"."ge_dim_dates" g on (Cast(g.date_date as date) between Cast(rnsb_handover_date as date) and Cast(rnsb_return_date as date))
 left Join "common_shop"."ge_dim_daily_exchange_rates" gd On (Replace(r.rnsb_currency_code,'CHF','SFR') = gd.exrd_foreign_currency_code)
@@ -169,6 +175,8 @@ select
 , pa.prtn_name as cstm_name
 , pa.oprt_bed as kdnr_prt_bed --Account Owner
 , pa.oprt_bed_vkni as kdnr_bed_vkni --Inside Sales
+prtn_blocked_status_code--Check AGAIN
+prtn_blocked_status--Check AGAIN
 , pa.prtn_highest_person_region as kdnr_highest_person_region
 , pa.prtn_highest_working_channel as kdnr_highest_working_channel
 , pa.prtn_person_region as kdnr_prtn_person_region --Team level
