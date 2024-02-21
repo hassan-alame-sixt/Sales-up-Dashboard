@@ -128,30 +128,30 @@ select
 , ip.kdnr_account_owner_type
 , ip.kdnr_account_owner_region
 , ip.kdnr_account_owner_working_channel
-, case when ip.kdnr_oprt_bed = ip.dto_oprt_bed and ip.kdnr_oprt_bed != 0 and ip.kdnr_oprt_bed is not null and ip.prtn_kdnr != ip.dto then True else False end as oprt_kdnr_dto_duplicate
-, case when ip.kdnr_oprt_bed = ip.dfi_oprt_bed and ip.kdnr_oprt_bed != 0 and ip.kdnr_oprt_bed is not null and ip.prtn_kdnr != ip.dfi then True else False end as  oprt_kdnr_dfi_duplicate
-, case when ip.kdnr_account_owner_region = ip.dto_account_owner_region and ip.kdnr_account_owner_region != '' and ip.kdnr_account_owner_region is not null and ip.prtn_kdnr != ip.dto then True else False end as oprt_region_kdnr_dto_duplicate
-, case when ip.kdnr_account_owner_region = ip.dfi_account_owner_region and ip.kdnr_account_owner_region != '' and ip.kdnr_account_owner_region is not null and ip.prtn_kdnr != ip.dfi then True else False end as oprt_region_kdnr_dfi_duplicate
+, case when ip.kdnr_oprt_bed = ip.dto_oprt_bed and ip.kdnr_oprt_bed != 0 and ip.kdnr_oprt_bed is not null then True else False end as oprt_kdnr_dto_duplicate
+, case when ip.kdnr_oprt_bed = ip.dfi_oprt_bed and ip.kdnr_oprt_bed != 0 and ip.kdnr_oprt_bed is not null then True else False end as oprt_kdnr_dfi_duplicate
+, case when ip.kdnr_account_owner_region = ip.dto_account_owner_region and ip.kdnr_account_owner_region != '' and ip.kdnr_account_owner_region is not null then True else False end as oprt_region_kdnr_dto_duplicate
+, case when ip.kdnr_account_owner_region = ip.dfi_account_owner_region and ip.kdnr_account_owner_region != '' and ip.kdnr_account_owner_region is not null then True else False end as oprt_region_kdnr_dfi_duplicate
 
 , ip.kdnr_bed_vkni
 , ip.kdnr_inside_sales
 , ip.kdnr_inside_sales_type
 , ip.kdnr_inside_sales_region
 , ip.kdnr_inside_sales_working_channel
-, case when ip.kdnr_bed_vkni = ip.dto_bed_vkni and ip.kdnr_bed_vkni != 0 and ip.kdnr_bed_vkni is not null and ip.prtn_kdnr != ip.dto then True else False end as  vkni_kdnr_dto_duplicate
-, case when ip.kdnr_bed_vkni = ip.dfi_bed_vkni and ip.kdnr_bed_vkni != 0 and ip.kdnr_bed_vkni is not null and ip.prtn_kdnr != ip.dfi then True else False end as  vkni_kdnr_dfi_duplicate
-, case when ip.kdnr_inside_sales_region = ip.dto_inside_sales_region and ip.kdnr_inside_sales_region != '' and ip.kdnr_inside_sales_region is not null and ip.prtn_kdnr != ip.dto then True else False end as vkni_region_kdnr_dto_duplicate
-, case when ip.kdnr_inside_sales_region = ip.dfi_inside_sales_region and ip.kdnr_inside_sales_region != '' and ip.kdnr_inside_sales_region is not null and ip.prtn_kdnr != ip.dfi then True else False end as vkni_region_kdnr_dfi_duplicate
+, case when ip.kdnr_bed_vkni = ip.dto_bed_vkni and ip.kdnr_bed_vkni != 0 and ip.kdnr_bed_vkni is not null then True else False end as  vkni_kdnr_dto_duplicate
+, case when ip.kdnr_bed_vkni = ip.dfi_bed_vkni and ip.kdnr_bed_vkni != 0 and ip.kdnr_bed_vkni is not null then True else False end as  vkni_kdnr_dfi_duplicate
+, case when ip.kdnr_inside_sales_region = ip.dto_inside_sales_region and ip.kdnr_inside_sales_region != '' and ip.kdnr_inside_sales_region is not null then True else False end as vkni_region_kdnr_dto_duplicate
+, case when ip.kdnr_inside_sales_region = ip.dfi_inside_sales_region and ip.kdnr_inside_sales_region != '' and ip.kdnr_inside_sales_region is not null then True else False end as vkni_region_kdnr_dfi_duplicate
 
 , ip.kdnr_acquired_by_bed
 , ip.kdnr_acquired_by
 , ip.kdnr_acquired_by_type
 , ip.kdnr_acquired_by_region
 , ip.kdnr_acquired_by_working_channel
-, case when ip.kdnr_acquired_by_bed = ip.dto_acquired_by_bed and ip.kdnr_acquired_by_bed != '0' and ip.kdnr_acquired_by_bed is not null and ip.prtn_kdnr != ip.dto then True else False end as  acquired_by_kdnr_dto_duplicate
-, case when ip.kdnr_acquired_by_bed = ip.dfi_acquired_by_bed and ip.kdnr_acquired_by_bed != '0' and ip.kdnr_acquired_by_bed is not null and ip.prtn_kdnr != ip.dfi then True else False end as  acquired_by_kdnr_dfi_duplicate
-, case when ip.kdnr_acquired_by_region = ip.dto_acquired_by_region and ip.kdnr_acquired_by_region != '' and ip.kdnr_acquired_by_region is not null and ip.prtn_kdnr != ip.dto then True else False end as acquired_region_kdnr_dto_duplicate
-, case when ip.kdnr_acquired_by_region = ip.dfi_acquired_by_region and ip.kdnr_acquired_by_region != '' and ip.kdnr_acquired_by_region is not null and ip.prtn_kdnr != ip.dfi then True else False end as acquired_region_kdnr_dfi_duplicate
+, case when ip.kdnr_acquired_by_bed = ip.dto_acquired_by_bed and ip.kdnr_acquired_by_bed != '0' and ip.kdnr_acquired_by_bed is not null then True else False end as  acquired_by_kdnr_dto_duplicate
+, case when ip.kdnr_acquired_by_bed = ip.dfi_acquired_by_bed and ip.kdnr_acquired_by_bed != '0' and ip.kdnr_acquired_by_bed is not null then True else False end as  acquired_by_kdnr_dfi_duplicate
+, case when ip.kdnr_acquired_by_region = ip.dto_acquired_by_region and ip.kdnr_acquired_by_region != '' and ip.kdnr_acquired_by_region is not null then True else False end as acquired_region_kdnr_dto_duplicate
+, case when ip.kdnr_acquired_by_region = ip.dfi_acquired_by_region and ip.kdnr_acquired_by_region != '' and ip.kdnr_acquired_by_region is not null then True else False end as acquired_region_kdnr_dfi_duplicate
 
 
 
@@ -163,24 +163,24 @@ select
 , ip.dto_account_owner_type
 , ip.dto_account_owner_region
 , ip.dto_account_owner_working_channel
-, case when ip.dto_oprt_bed = ip.dfi_oprt_bed and ip.dto_oprt_bed != 0 and ip.dto_oprt_bed is not null and ip.dto != ip.dfi then True else False end as oprt_dto_dfi_duplicate
-, case when ip.dto_account_owner_region = ip.dfi_account_owner_region and ip.dto_account_owner_region != '' and ip.dto_account_owner_region is not null and ip.dto != ip.dfi then True else False end as oprt_region_dto_dfi_duplicate
+, case when ip.dto_oprt_bed = ip.dfi_oprt_bed and ip.dto_oprt_bed != 0 and ip.dto_oprt_bed is not null then True else False end as oprt_dto_dfi_duplicate
+, case when ip.dto_account_owner_region = ip.dfi_account_owner_region and ip.dto_account_owner_region != '' and ip.dto_account_owner_region is not null then True else False end as oprt_region_dto_dfi_duplicate
 
 , ip.dto_bed_vkni
 , ip.dto_inside_sales
 , ip.dto_inside_sales_type
 , ip.dto_inside_sales_region
 , ip.dto_inside_sales_working_channel
-, case when ip.dto_bed_vkni = ip.dfi_bed_vkni and ip.dto_bed_vkni != 0 and ip.dto_bed_vkni is not null  and ip.dto != ip.dfi  then True else False end as vkni_dto_dfi_duplicate
-, case when ip.dto_inside_sales_region = ip.dfi_inside_sales_region and ip.dto_inside_sales_region != '' and ip.dto_inside_sales_region is not null and ip.dto != ip.dfi  then True else False end as vkni_region_dto_dfi_duplicate
+, case when ip.dto_bed_vkni = ip.dfi_bed_vkni and ip.dto_bed_vkni != 0 and ip.dto_bed_vkni is not null then True else False end as vkni_dto_dfi_duplicate
+, case when ip.dto_inside_sales_region = ip.dfi_inside_sales_region and ip.dto_inside_sales_region != '' and ip.dto_inside_sales_region is not null then True else False end as vkni_region_dto_dfi_duplicate
 
 , ip.dto_acquired_by_bed
 , ip.dto_acquired_by
 , ip.dto_acquired_by_type
 , ip.dto_acquired_by_region
 , ip.dto_acquired_by_working_channel
-, case when ip.dto_acquired_by_bed = ip.dfi_acquired_by_bed and ip.dto_acquired_by_bed != '0' and ip.dto_acquired_by_bed is not null and ip.dto != ip.dfi  then True else False end as acquired_by_dto_dfi_duplicate
-, case when ip.dto_acquired_by_region = ip.dfi_acquired_by_region and ip.dto_acquired_by_region != '' and ip.dto_acquired_by_region is not null and ip.dto != ip.dfi  then True else False end as acquired_by_region_dto_dfi_duplicate
+, case when ip.dto_acquired_by_bed = ip.dfi_acquired_by_bed and ip.dto_acquired_by_bed != '0' and ip.dto_acquired_by_bed is not null then True else False end as acquired_by_dto_dfi_duplicate
+, case when ip.dto_acquired_by_region = ip.dfi_acquired_by_region and ip.dto_acquired_by_region != '' and ip.dto_acquired_by_region is not null then True else False end as acquired_by_region_dto_dfi_duplicate
 
 
 
