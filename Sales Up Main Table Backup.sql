@@ -6,11 +6,28 @@ parquet_compression = 'SNAPPY') as
 --Table Granularity is rs.rntl_mvnr, rs.rntl_mser, rs.rntl_konr, ch.chra_pos, ch.chra_inty + re.rsrv_resn
 /*END: Specifying table destination*/
 
-
-
 --Two filters on Reservations fact table 
 
-With inc_charges as ( --Maintenance complication
+With sixt_unlimited as (
+select 
+  r.prtn_kdnr
+, r.rnsb_aonr
+, r.mndt_code 
+, r.rnsb_status
+, r.vhcl_group
+, r.sys_actual_flg
+, Cast(r.rnsb_handover_date as date) AS start_date
+, Cast(r.rnsb_return_date as date) AS end_date
+, Cast(g.date_date as date) as calendar_date
+, (((r.rnsb_month_rate) / Extract(Day From (date_add('month', 1, date_trunc('month', g.date_date)) - date_trunc('month', g.date_date))))/ (gd.exrd_exchange_rate)) as Revenue_per_day
+From "rent_shop"."ra_fct_subscriptions" r
+Left Join "common_shop"."ge_dim_dates" g on (Cast(g.date_date as date) between Cast(rnsb_handover_date as date) and Cast(rnsb_return_date as date))
+left Join "common_shop"."ge_dim_daily_exchange_rates" gd On (Replace(r.rnsb_currency_code,'CHF','SFR') = gd.exrd_foreign_currency_code)
+Where exrd_rate_date = date_trunc('month', Cast(g.date_date as date))
+)
+
+
+, inc_charges as ( --Maintenance complication
 select
 ch.rntl_mvnr,
 ch.rntl_mser,
@@ -110,119 +127,55 @@ select
 , br.brnc_state
 , br.brnc_city
 
+, case when dfr.prtn_kdnr is null then False else True end as cleansed_dfr
+, case when dfi.agnc_age is null then False else True end as cleansed_dfi
+
 , rs.cstm_kdnr
-, ao.prtn_name
-, ao.abkz
-, ao.prtn_blocked_status_code
-, ao.prtn_blocked_status
-, ao.prtn_parent_domestic_country
-, ao.kdnr_highest_linked
-, ao.cleansed_dfr
-, ao.kdnr_oprt_bed
-, ao.kdnr_account_owner
-, ao.kdnr_account_owner_type
-, ao.kdnr_account_owner_region
-, ao.kdnr_owner_segment_mapping
-, ao.kdnr_owner_responsiblity_mapping
-, ao.kdnr_account_owner_working_channel
-, ao.oprt_kdnr_dto_duplicate
-, ao.oprt_kdnr_dfi_duplicate
-, ao.oprt_region_kdnr_dto_duplicate
-, ao.oprt_region_kdnr_dfi_duplicate
-, ao.kdnr_bed_vkni
-, ao.kdnr_inside_sales
-, ao.kdnr_inside_sales_type
-, ao.kdnr_inside_sales_region
-, ao.kdnr_inside_segment_mapping
-, ao.kdnr_inside_responsiblity_mapping
-, ao.kdnr_inside_sales_working_channel
-, ao.vkni_kdnr_dto_duplicate
-, ao.vkni_kdnr_dfi_duplicate
-, ao.vkni_region_kdnr_dto_duplicate
-, ao.vkni_region_kdnr_dfi_duplicate
-, ao.kdnr_acquired_by_bed
-, ao.kdnr_acquired_by
-, ao.kdnr_acquired_by_type
-, ao.kdnr_acquired_by_region
-, ao.kdnr_acquired_segment_mapping
-, ao.kdnr_acquired_responsiblity_mapping
-, ao.kdnr_acquired_by_working_channel
-, ao.acquired_by_kdnr_dto_duplicate
-, ao.acquired_by_kdnr_dfi_duplicate
-, ao.acquired_region_kdnr_dto_duplicate
-, ao.acquired_region_kdnr_dfi_duplicate
-, ao.kdnr_acquired_rent_date
-, ao.sf_deal_amount
-, ao.sf_total_sixt_potential
-, ao.sf_total_customer_spend
-, ao.dto
-, ao.dto_name
-, ao.dto_oprt_bed
-, ao.dto_account_owner
-, ao.dto_account_owner_type
-, ao.dto_account_owner_region
-, ao.dto_owner_segment_mapping
-, ao.dto_owner_responsiblity_mapping
-, ao.dto_account_owner_working_channel
-, ao.oprt_dto_dfi_duplicate
-, ao.oprt_region_dto_dfi_duplicate
-, ao.dto_bed_vkni
-, ao.dto_inside_sales
-, ao.dto_inside_sales_type
-, ao.dto_inside_sales_region
-, ao.dto_inside_segment_mapping
-, ao.dto_inside_responsiblity_mapping
-, ao.dto_inside_sales_working_channel
-, ao.vkni_dto_dfi_duplicate
-, ao.vkni_region_dto_dfi_duplicate
-, ao.dto_acquired_by_bed
-, ao.dto_acquired_by
-, ao.dto_acquired_by_type
-, ao.dto_acquired_by_region
-, ao.dto_acquired_segment_mapping
-, ao.dto_acquired_responsiblity_mapping
-, ao.dto_acquired_by_working_channel
-, ao.acquired_by_dto_dfi_duplicate
-, ao.acquired_by_region_dto_dfi_duplicate
-, ao.dfi
-, ao.dfi_name
-, ao.dfi_oprt_bed
-, ao.dfi_account_owner
-, ao.dfi_account_owner_type
-, ao.dfi_account_owner_region
-, ao.dfi_owner_segment_mapping
-, ao.dfi_owner_responsiblity_mapping
-, ao.dfi_account_owner_working_channel
-, ao.dfi_bed_vkni
-, ao.dfi_inside_sales
-, ao.dfi_inside_sales_type
-, ao.dfi_inside_sales_region
-, ao.dfi_inside_segment_mapping
-, ao.dfi_inside_responsiblity_mapping
-, ao.dfi_inside_sales_working_channel
-, ao.dfi_acquired_by_bed
-, ao.dfi_acquired_by
-, ao.dfi_acquired_by_type
-, ao.dfi_acquired_by_region
-, ao.dfi_acquired_segment_mapping
-, ao.dfi_acquired_responsiblity_mapping
-, ao.dfi_acquired_by_working_channel
+, pa.prtn_registration_range_code as abkz
+, pa.prtn_name as cstm_name
+, pa.oprt_bed as kdnr_prt_bed --Account Owner
+, pa.oprt_bed_vkni as kdnr_bed_vkni --Inside Sales
+, pa.prtn_blocked_status_code--Check AGAIN
+, pa.prtn_blocked_status--Check AGAIN
+, pa.prtn_highest_person_region as kdnr_highest_person_region
+, pa.prtn_highest_working_channel as kdnr_highest_working_channel
+, pa.prtn_person_region as kdnr_prtn_person_region --Team level
+, pa.prtn_working_channel as kdnr_prtn_working_channel --Sales Region
+, concat(op1.oprt_first_name, ' ', op1.oprt_last_name) as kdnr_account_owner
+, case when pa.prtn_parent_num = 0 and pa.prtn_subsidiary_num = 0 then 'Highest Account' else 'Linked Account' end as kdnr_highest_linked
+
+, pa.prtn_subsidiary_calc_num as dto
+, pa.prtn_subsidiary_calc_name as dto_name
+
+, pa.prtn_parent_calc_num as dfi
+, pa.prtn_parent_calc_name as dfi_name
+, dc.domestic_country as prtn_parent_domestic_country
+
+, pa.prtn_account_owner_type as sf_account_owner_type
+, pa.prtn_acquired_by_rent_id as sf_acquired_by_rent_id
+, pa.prtn_acquired_rent_date as sf_acquired_rent_date
+, pa.prtn_acquired_by_rent_region as sf_acquired_by_rent_region
+, pa.prtn_inside_sales_person_region as sf_inside_sales_person_region
+, pa.prtn_acquired_by_rent_saleschannel as sf_acquired_by_rent_saleschannel
+, pa.prtn_deal_amount as sf_deal_amount
+, pa.prtn_total_sixt_potential as sf_total_sixt_potential
+, pa.prtn_total_customer_spend as sf_total_customer_spend
 
 , rs.agnc_age_agency1 as agnc_age
 , ag.prtn_name as age_name
-, ag.kdnr_oprt_bed as age_prt_bed
-, ag.dfi_account_owner_region as age_highest_person_region --Team level
-, ag.dfi_account_owner_working_channel as age_highest_working_channel --Sales Region
-, ag.kdnr_account_owner_region as age_prtn_person_region
-, ag.kdnr_account_owner_working_channel as age_prtn_working_channel
-, ag.kdnr_account_owner as age_account_owner
-, ag.kdnr_highest_linked as age_highest_linked
+, ag.oprt_bed as age_prt_bed
+, ag.prtn_highest_person_region as age_highest_person_region --Team level
+, ag.prtn_highest_working_channel as age_highest_working_channel --Sales Region
+, ag.prtn_person_region as age_prtn_person_region
+, ag.prtn_working_channel as age_prtn_working_channel
+, concat(op2.oprt_last_name,', ',op2.oprt_first_name) as age_account_owner
+, case when ag.prtn_parent_num = 0 and ag.prtn_subsidiary_num = 0 then 'Highest Account' else 'Linked Account' end as age_highest_linked
 
-, ag.dto as dtt
-, ag.dto_name as dtt_name
+, ag.prtn_subsidiary_calc_num as dtt
+, ag.prtn_subsidiary_calc_name as dtt_name
 
-, ag.dfi as dfr
-, ag.dfi_name as dfr_name
+, ag.prtn_parent_calc_num as dfr
+, ag.prtn_parent_calc_name as dfr_name
 
 , rs.rntl_type_code
 , rs.rntl_type
@@ -253,7 +206,7 @@ select
 , case when max(rs.rntl_konr) over (partition by rs.rntl_mvnr) = 0 then rs.rntl_mvnr 
        else null 
        end as rntl_correction_mvnr 
-, case when br.brnc_country = ao.prtn_parent_domestic_country then rs.rntl_mvnr
+, case when br.brnc_country = dc.domestic_country then rs.rntl_mvnr
        else null 
        end as domestic_country_mvnr
 , case when min(ve.vhat_elty) over (partition by rs.rntl_mvnr) = 'E' then rs.rntl_mvnr 
@@ -372,10 +325,16 @@ select
 from "rent_shop"."ra_fct_rental_series" rs
 full join "rent_shop"."rs_fct_reservations" re on re.rntl_mvnr = rs.rntl_mvnr
 left join "customer_shop"."ra_fct_satisfactions" cs on cs.rntl_mvnr = rs.rntl_mvnr
-left join "sales_mart"."sales_account_ownership" ao on ao.prtn_kdnr = rs.cstm_kdnr
-left join "sales_mart"."sales_account_ownership" ag on ag.prtn_kdnr = rs.agnc_age_agency1
+left join "customer_shop"."pa_dim_partners" pa on pa.prtn_kdnr = rs.cstm_kdnr
+left join "customer_shop"."pa_dim_partners" ag on ag.prtn_kdnr = rs.agnc_age_agency1
+left join ranked_revenue_by_country dc on dc.prtn_parent_calc_num = pa.prtn_parent_calc_num and dc.country_revenue_rank = 1
+left join "hr_shop"."op_dim_operators" op1 on op1.oprt_bed = pa.oprt_bed 
+left join "hr_shop"."op_dim_operators" op2 on op2.oprt_bed = ag.oprt_bed
+left join user_config_data on ucd on ucd.sucd_personnel_number = pa.oprt_bed
 left join "common_shop"."br_dim_branches" br on br.brnc_code = rs.brnc_code_handover
 left join "fleet_shop"."ve_dim_vehicles" ve on ve.vhcl_int_num = rs.vhcl_int_num
+left join cleansed_DFR dfr on dfr.prtn_kdnr = rs.cstm_kdnr
+left join cleansed_DFI dfi on dfi.agnc_age = rs.agnc_age_agency1
 left join "rent_shop"."rt_dim_rates" rt
     on (rs.rate_prl = rt.rate_prl and rs.rntl_handover_date between rt.rate_gdat and coalesce(date_add('day',-1,rt.rate_next_gdat),rt.rate_vdat)) 
 left join inc_charges inc on inc.rntl_mvnr = rs.rntl_mvnr
@@ -424,103 +383,35 @@ select
 , i.brnc_region
 , i.brnc_state
 , i.brnc_city
-, i.cstm_kdnr
-, i.prtn_name
-, i.abkz
-, i.prtn_blocked_status_code
-, i.prtn_blocked_status
-, i.prtn_parent_domestic_country
-, i.kdnr_highest_linked
 , i.cleansed_dfr
-, i.kdnr_oprt_bed
-, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'Gulden' else i.kdnr_account_owner end as kdnr_account_owner --AAFES: Set default account owner
-, i.kdnr_account_owner_type
-, i.kdnr_account_owner_region
-, i.kdnr_owner_segment_mapping
-, i.kdnr_owner_responsiblity_mapping
-, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'Global Accounts' else i.kdnr_account_owner_working_channel end as kdnr_account_owner_working_channel --AAFES: Set highest level working channel
-, i.oprt_kdnr_dto_duplicate
-, i.oprt_kdnr_dfi_duplicate
-, i.oprt_region_kdnr_dto_duplicate
-, i.oprt_region_kdnr_dfi_duplicate
+, i.cleansed_dfi
+, i.cstm_kdnr
+, i.abkz
+, i.cstm_name
+, i.kdnr_prt_bed
 , i.kdnr_bed_vkni
-, i.kdnr_inside_sales
-, i.kdnr_inside_sales_type
-, i.kdnr_inside_sales_region
-, i.kdnr_inside_segment_mapping
-, i.kdnr_inside_responsiblity_mapping
-, i.kdnr_inside_sales_working_channel
-, i.vkni_kdnr_dto_duplicate
-, i.vkni_kdnr_dfi_duplicate
-, i.vkni_region_kdnr_dto_duplicate
-, i.vkni_region_kdnr_dfi_duplicate
-, i.kdnr_acquired_by_bed
-, i.kdnr_acquired_by
-, i.kdnr_acquired_by_type
-, i.kdnr_acquired_by_region
-, i.kdnr_acquired_segment_mapping
-, i.kdnr_acquired_responsiblity_mapping
-, i.kdnr_acquired_by_working_channel
-, i.acquired_by_kdnr_dto_duplicate
-, i.acquired_by_kdnr_dfi_duplicate
-, i.acquired_region_kdnr_dto_duplicate
-, i.acquired_region_kdnr_dfi_duplicate
-, i.kdnr_acquired_rent_date
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'GAM - Germany' else i.kdnr_highest_person_region end as kdnr_highest_person_region --AAFES: Set highest level region
+, i.kdnr_highest_working_channel
+, i.kdnr_prtn_person_region
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'Global Accounts' else i.kdnr_prtn_working_channel end as kdnr_prtn_working_channel --AAFES: Set highest level working channel
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'Gulden' else i.kdnr_account_owner end as kdnr_account_owner --AAFES: Set default account owner 
+, i.kdnr_highest_linked
+, i.dto
+, i.dto_name
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 19434019 else i.dfi end as dfi --AAFES: Set default account number
+, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'AAFES Dummy account'  else  i.dfi_name end as dfi_name --AAFES: Set default account name 
+, i.prtn_parent_domestic_country
+
+, i.sf_account_owner_type
+, i.sf_acquired_by_rent_id
+, i.sf_acquired_rent_date
+, i.sf_acquired_by_rent_region
+, i.sf_inside_sales_person_region
+, i.sf_acquired_by_rent_saleschannel
 , i.sf_deal_amount
 , i.sf_total_sixt_potential
 , i.sf_total_customer_spend
-, i.dto
-, i.dto_name
-, i.dto_oprt_bed
-, i.dto_account_owner
-, i.dto_account_owner_type
-, i.dto_account_owner_region
-, i.dto_owner_segment_mapping
-, i.dto_owner_responsiblity_mapping
-, i.dto_account_owner_working_channel
-, i.oprt_dto_dfi_duplicate
-, i.oprt_region_dto_dfi_duplicate
-, i.dto_bed_vkni
-, i.dto_inside_sales
-, i.dto_inside_sales_type
-, i.dto_inside_sales_region
-, i.dto_inside_segment_mapping
-, i.dto_inside_responsiblity_mapping
-, i.dto_inside_sales_working_channel
-, i.vkni_dto_dfi_duplicate
-, i.vkni_region_dto_dfi_duplicate
-, i.dto_acquired_by_bed
-, i.dto_acquired_by
-, i.dto_acquired_by_type
-, i.dto_acquired_by_region
-, i.dto_acquired_segment_mapping
-, i.dto_acquired_responsiblity_mapping
-, i.dto_acquired_by_working_channel
-, i.acquired_by_dto_dfi_duplicate
-, i.acquired_by_region_dto_dfi_duplicate
-, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 19434019 else i.dfi end as dfi --AAFES: Set default account number
-, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'AAFES Dummy account'  else  i.dfi_name end as dfi_name --AAFES: Set default account name 
-, i.dfi_oprt_bed
-, i.dfi_account_owner
-, i.dfi_account_owner_type
-, case when ((i.dfi != 6507  or i.dfi is null) AND i.brnc_type_code = 'A') then 'GAM - Germany' else i.dfi_account_owner_region end as dfi_account_owner_region --AAFES: Set highest level region
-, i.dfi_owner_segment_mapping
-, i.dfi_owner_responsiblity_mapping
-, i.dfi_account_owner_working_channel
-, i.dfi_bed_vkni
-, i.dfi_inside_sales
-, i.dfi_inside_sales_type
-, i.dfi_inside_sales_region
-, i.dfi_inside_segment_mapping
-, i.dfi_inside_responsiblity_mapping
-, i.dfi_inside_sales_working_channel
-, i.dfi_acquired_by_bed
-, i.dfi_acquired_by
-, i.dfi_acquired_by_type
-, i.dfi_acquired_by_region
-, i.dfi_acquired_segment_mapping
-, i.dfi_acquired_responsiblity_mapping
-, i.dfi_acquired_by_working_channel
+
 , i.agnc_age
 , i.age_name
 , i.age_prt_bed
@@ -582,7 +473,7 @@ select
 , i.product_level2_car_truck
 , i.product_level2_cnb_vnt
 , i.product_level3_name
-, concat(i.product_level2_car_truck, ' - ', i.product_level3_name) as product
+, concatenate(i.product_level2_car_truck, ' - ', i.product_level3_name) as product
 , i.chra_pos
 , i.chra_inty
 , i.chra_chco
@@ -597,6 +488,7 @@ select
 , i.Time_and_Mileage
 , i.improved_revenue
 , i.Inc_tot
+
 , case when i.internet_reservation_mvnr is not null then i.improved_revenue
        else null 
        end as internet_reservation_revenue
@@ -609,6 +501,7 @@ select
 , case when i.domestic_country_mvnr is null then i.improved_revenue
        else null 
        end as non_domestic_revenue
+
 from initial_pull i
 where year(i.rntl_accounting_date) >= 2019
 
