@@ -115,6 +115,7 @@ select
 , ao.abkz
 , ao.prtn_blocked_status_code
 , ao.prtn_blocked_status
+, ao.prtn_rate_priority_code
 , ao.prtn_parent_domestic_country
 , ao.kdnr_highest_linked
 , ao.cleansed_dfr
@@ -429,6 +430,7 @@ select
 , i.abkz
 , i.prtn_blocked_status_code
 , i.prtn_blocked_status
+, i.prtn_rate_priority_code
 , i.prtn_parent_domestic_country
 , i.kdnr_highest_linked
 , i.cleansed_dfr
