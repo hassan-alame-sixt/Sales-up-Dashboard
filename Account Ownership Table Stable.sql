@@ -257,7 +257,8 @@ select
 , pa.prtn_registration_range_code as abkz
 , pa.prtn_blocked_status_code--Check AGAIN
 , pa.prtn_blocked_status--Check AGAIN
-, prtn_rate_priority_code
+, pa.prtn_rate_priority_code
+, pa.prtn_rate_priority_desc
 , dc.domestic_country as prtn_parent_domestic_country
 , case when pa.prtn_parent_num = 0 and pa.prtn_subsidiary_num = 0 then 'Highest Account' else 'Linked Account' end as kdnr_highest_linked
 , case when dfr.prtn_kdnr is not null then False else True end as cleansed_dfr
@@ -369,6 +370,7 @@ select
 , ip.prtn_blocked_status_code
 , ip.prtn_blocked_status
 , ip.prtn_rate_priority_code
+, ip.prtn_rate_priority_desc
 , ip.prtn_parent_domestic_country
 , ip.kdnr_highest_linked
 , ip.cleansed_dfr
@@ -485,6 +487,7 @@ select
 , ip.prtn_blocked_status_code
 , ip.prtn_blocked_status
 , ip.prtn_rate_priority_code
+, ip.prtn_rate_priority_desc
 , ip.prtn_parent_domestic_country
 , ip.kdnr_highest_linked
 , ip.cleansed_dfr

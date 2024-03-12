@@ -1,7 +1,7 @@
 /*START: Specifying table destination*/
-create table if not exists "sales_mart"."self_service_main_table"
+create table if not exists "sales_mart"."sales_up_main_table"
 with (format='Parquet',
-external_location='s3://sds-prod-store-marts/sales_mart/self_service_main_table',
+external_location='s3://sds-prod-store-marts/sales_mart/sales_up_main_table',
 parquet_compression = 'SNAPPY') as
 --Table Granularity is rs.rntl_mvnr, rs.rntl_mser, rs.rntl_konr, ch.chra_pos, ch.chra_inty + re.rsrv_resn
 /*END: Specifying table destination*/
@@ -116,6 +116,7 @@ select
 , ao.prtn_blocked_status_code
 , ao.prtn_blocked_status
 , ao.prtn_rate_priority_code
+, ao.prtn_rate_priority_desc
 , ao.prtn_parent_domestic_country
 , ao.kdnr_highest_linked
 , ao.cleansed_dfr
@@ -431,6 +432,7 @@ select
 , i.prtn_blocked_status_code
 , i.prtn_blocked_status
 , i.prtn_rate_priority_code
+, i.prtn_rate_priority_desc
 , i.prtn_parent_domestic_country
 , i.kdnr_highest_linked
 , i.cleansed_dfr
