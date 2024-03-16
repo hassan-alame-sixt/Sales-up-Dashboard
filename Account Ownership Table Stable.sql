@@ -16,7 +16,7 @@ and pdp.prtn_kdnr Not in (Select agnc_age
                       From "customer_shop"."pa_dim_agencies"))
 
 
-, cleansed_DFI as (  
+, cleansed_DFI as (
 select pdp.agnc_age
 From "customer_shop"."pa_dim_agencies" pdp
 Left Join "customer_shop"."pa_dim_partners" pdo On (pdp.agnc_parent_num = pdo.prtn_kdnr)
