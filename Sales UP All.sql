@@ -149,7 +149,7 @@ select
 , sm.domestic_revenue
 , sm.non_domestic_revenue
 from "sales_mart"."sales_up_main_table" sm
-where sm.rntl_mvnr is not null
+where sm.rntl_mvnr is not null --To eliminate resrvations with no rentals
 )
 
 , unpivotted_ownership as (
@@ -168,6 +168,9 @@ select
 , 'KDNR' as hierarchy_level
 , ip.cstm_kdnr as account_number
 , ip.prtn_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Account Owner' as ownership_level
 , cast(ip.kdnr_oprt_bed as varchar) as owner_bed
@@ -240,6 +243,9 @@ select
 , 'DTO' as hierarchy_level
 , ip.dto as account_number
 , ip.dto_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Account Owner' as ownership_level
 , cast(ip.dto_oprt_bed as varchar) as owner_bed
@@ -312,6 +318,9 @@ select
 , 'DFI' as hierarchy_level
 , ip.dfi as account_number
 , ip.dfi_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Account Owner' as ownership_level
 , cast(ip.dfi_oprt_bed as varchar) as owner_bed
@@ -383,6 +392,9 @@ select
 , 'KDNR' as hierarchy_level
 , ip.cstm_kdnr as account_number
 , ip.prtn_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Inside Sales' as ownership_level
 , cast(ip.kdnr_bed_vkni as varchar) as owner_bed
@@ -455,6 +467,9 @@ select
 , 'DTO' as hierarchy_level
 , ip.dto as account_number
 , ip.dto_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Inside Sales' as ownership_level
 , cast(ip.dto_bed_vkni as varchar) as owner_bed
@@ -527,6 +542,9 @@ select
 , 'DFI' as hierarchy_level
 , ip.dfi as account_number
 , ip.dfi_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Inside Sales' as ownership_level
 , cast(ip.dfi_bed_vkni as varchar) as owner_bed
@@ -598,6 +616,9 @@ select
 , 'KDNR' as hierarchy_level
 , ip.cstm_kdnr as account_number
 , ip.prtn_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Acquired By' as ownership_level
 , cast(ip.kdnr_acquired_by_bed as varchar) as owner_bed
@@ -670,6 +691,9 @@ select
 , 'DTO' as hierarchy_level
 , ip.dto as account_number
 , ip.dto_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Acquired By' as ownership_level
 , cast(ip.dto_acquired_by_bed as varchar) as owner_bed
@@ -742,6 +766,9 @@ select
 , 'DFI' as hierarchy_level
 , ip.dfi as account_number
 , ip.dfi_name as account_name
+, ip.cstm_kdnr as kdnr
+, ip.dto
+, ip.dfi 
 --, ip.cleansed_dfr --Learn what to do with this
 , 'Acquired By' as ownership_level
 , cast(ip.dfi_acquired_by_bed as varchar) as owner_bed
@@ -811,6 +838,9 @@ select
 , uo.hierarchy_level
 , uo.account_number
 , uo.account_name
+, uo.kdnr
+, uo.dto
+, uo.dfi 
 , uo.ownership_level
 , uo.owner_bed
 , uo.owner_name
@@ -858,3 +888,4 @@ select
 , uo.domestic_revenue
 , uo.non_domestic_revenue
 from unpivotted_ownership uo
+where uo.owner_bed != '0' --To eliminate companies with no owner
