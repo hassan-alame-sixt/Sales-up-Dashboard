@@ -218,14 +218,14 @@ left join "sales_shop"."sales_controlling_region_mapping" rm2 on rm2.mapping_reg
 left join "sales_shop"."sales_controlling_region_mapping" rm3 on rm3.mapping_regionsebene = pa.prtn_inside_sales_person_region
 )
 
-, enchanced_operator as (
+, enhanced_operator as (
 select
   op.oprt_bed
 , op.oprt_last_name
 , op.oprt_first_name
-, ucd.sucd_sales_person_tpye as oprt_sales_person_type
+, ucd.sucd_sales_person_type as oprt_sales_person_type
 from "hr_shop"."op_dim_operators" op
-left join "customer_shop"."sa_fct_user_config_data" ucd on ucd.sucd_personnel_number = op.oprt_bed
+left join "customer_shop"."sa_fct_user_config_data" ucd on ucd.sucd_personnel_number = cast(op.oprt_bed as varchar)
 )
 
 
@@ -351,15 +351,15 @@ from partners pa
 left join ranked_revenue_by_country dc on dc.prtn_parent_calc_num = pa.prtn_parent_calc_num and dc.country_revenue_rank = 1
 left join partners dto on dto.prtn_kdnr = pa.prtn_subsidiary_calc_num
 left join partners dfi on dfi.prtn_kdnr = pa.prtn_parent_calc_num
-left join enchanced_operator op1 on op1.oprt_bed = pa.oprt_bed
-left join enchanced_operator op2 on op2.oprt_bed = dto.oprt_bed
-left join enchanced_operator op3 on op3.oprt_bed = dfi.oprt_bed
-left join enchanced_operator op4 on op4.oprt_bed = pa.oprt_bed_vkni
-left join enchanced_operator op5 on op5.oprt_bed = dto.oprt_bed_vkni
-left join enchanced_operator op6 on op6.oprt_bed = dfi.oprt_bed_vkni
-left join enchanced_operator op7 on cast(op7.oprt_bed as varchar) = pa.prtn_acquired_by_rent_id
-left join enchanced_operator op8 on cast(op8.oprt_bed as varchar) = dto.prtn_acquired_by_rent_id
-left join enchanced_operator op9 on cast(op9.oprt_bed as varchar) = dfi.prtn_acquired_by_rent_id
+left join enhanced_operator op1 on op1.oprt_bed = pa.oprt_bed
+left join enhanced_operator op2 on op2.oprt_bed = dto.oprt_bed
+left join enhanced_operator op3 on op3.oprt_bed = dfi.oprt_bed
+left join enhanced_operator op4 on op4.oprt_bed = pa.oprt_bed_vkni
+left join enhanced_operator op5 on op5.oprt_bed = dto.oprt_bed_vkni
+left join enhanced_operator op6 on op6.oprt_bed = dfi.oprt_bed_vkni
+left join enhanced_operator op7 on cast(op7.oprt_bed as varchar) = pa.prtn_acquired_by_rent_id
+left join enhanced_operator op8 on cast(op8.oprt_bed as varchar) = dto.prtn_acquired_by_rent_id
+left join enhanced_operator op9 on cast(op9.oprt_bed as varchar) = dfi.prtn_acquired_by_rent_id
 left join cleansed_DFR dfr on dfr.prtn_kdnr = pa.prtn_kdnr)
 
 , intermediary_pull as (
