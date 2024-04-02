@@ -112,7 +112,7 @@ select
 
 , rs.cstm_kdnr
 , ao.prtn_name
-, ao.abkz
+, ao.prtn_registration_range_code
 , ao.prtn_blocked_status_code
 , ao.prtn_blocked_status
 , ao.prtn_rate_priority_code
@@ -428,7 +428,7 @@ select
 , i.brnc_city
 , i.cstm_kdnr
 , i.prtn_name
-, i.abkz
+, i.prtn_registration_range_code
 , i.prtn_blocked_status_code
 , i.prtn_blocked_status
 , i.prtn_rate_priority_code

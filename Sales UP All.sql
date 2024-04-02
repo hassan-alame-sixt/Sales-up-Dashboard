@@ -20,7 +20,7 @@ select
 , sm.brnc_country_region_franchise_breakdown
 , sm.cstm_kdnr
 , sm.prtn_name
-, sm.abkz
+, sm.prtn_registration_range_code
 , sm.prtn_parent_domestic_country
 , sm.cleansed_dfr
 , sm.kdnr_oprt_bed

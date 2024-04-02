@@ -254,7 +254,7 @@ from revenue_by_country)
 select 
   pa.prtn_kdnr
 , pa.prtn_name
-, pa.prtn_registration_range_code as abkz
+, pa.prtn_registration_range_code
 , pa.prtn_blocked_status_code--Check AGAIN
 , pa.prtn_blocked_status--Check AGAIN
 , pa.prtn_rate_priority_code
@@ -366,7 +366,7 @@ left join cleansed_DFR dfr on dfr.prtn_kdnr = pa.prtn_kdnr)
 select
   ip.prtn_kdnr
 , ip.prtn_name
-, ip.abkz
+, ip.prtn_registration_range_code
 , ip.prtn_blocked_status_code
 , ip.prtn_blocked_status
 , ip.prtn_rate_priority_code
@@ -483,7 +483,7 @@ from initial_pull ip
 select
   ip.prtn_kdnr
 , ip.prtn_name
-, ip.abkz
+, ip.prtn_registration_range_code
 , ip.prtn_blocked_status_code
 , ip.prtn_blocked_status
 , ip.prtn_rate_priority_code
